@@ -5,7 +5,7 @@
 **/package-lock.json
 
 # readme in the source folder, only used for npm.
-./source/README.md
+source/README.md
 
 # functions
 **/code.tar.gz
