@@ -97,7 +97,7 @@ class AppExpressRequest {
     /**
      * Get the path part of the URL.
      *
-     * @returns {string|undefined} The URL port.
+     * @returns {string|undefined} The URL path.
      */
     get path() {
         return this._request.path;
@@ -106,7 +106,7 @@ class AppExpressRequest {
     /**
      * Get the raw query params string from the URL.
      *
-     * @returns {string|undefined} The URL port.
+     * @returns {string|undefined} The query string.
      */
     get queryString() {
         return this._request.queryString;
@@ -124,7 +124,7 @@ class AppExpressRequest {
     /**
      * Get the parsed query params from the URL.
      *
-     * @returns {Object|undefined} The URL port.
+     * @returns {Object|{}} The parsed params or empty if not set.
      */
     get query() {
         if (typeof this._request.query === 'string' && this._request.query) {
