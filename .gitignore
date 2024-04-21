@@ -1,0 +1,11 @@
+.idea
+**/node_modules/
+
+*.sh
+**/package-lock.json
+
+# readme in the source folder, only used for npm.
+./source/README.md
+
+# functions
+**/code.tar.gz

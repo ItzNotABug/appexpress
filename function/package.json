@@ -1,0 +1,22 @@
+{
+  "name": "appexpress-function",
+  "version": "1.0.0",
+  "description": "A demo function to showcase `appexpress` framework.",
+  "author": "@itznotabug",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "lint": "prettier . --check",
+    "format": "prettier . --write"
+  },
+  "prettier": {
+    "tabWidth": 4,
+    "singleQuote": true
+  },
+  "dependencies": {
+    "@itznotabug/appexpress": "^0.1.4"
+  },
+  "devDependencies": {
+    "prettier": "3.2.5"
+  }
+}

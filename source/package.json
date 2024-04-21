@@ -1,0 +1,28 @@
+{
+  "name": "@itznotabug/appexpress",
+  "version": "0.1.4",
+  "description": "An `express.js` like framework for Appwrite Functions, enabling super-easy navigation!",
+  "author": "@itznotabug",
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "lint": "prettier . --check",
+    "format": "prettier . --write"
+  },
+  "prettier": {
+    "tabWidth": 4,
+    "singleQuote": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itznotabug/appexpress.git"
+  },
+  "devDependencies": {
+    "prettier": "3.2.5"
+  },
+  "keywords": [
+    "appwrite",
+    "appwrite-functions",
+    "appwrite-functions-navigation"
+  ]
+}
