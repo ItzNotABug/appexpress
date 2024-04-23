@@ -365,11 +365,15 @@ class AppExpress {
             this.#clearDependencies(context);
 
             if (routeHandlerResult) return routeHandlerResult;
-            else if (context.res.dynamic) return context.res.dynamic;
-            else {
+            else if (
+                context.res.dynamic !== null &&
+                context.res.dynamic !== undefined
+            ) {
+                return context.res.dynamic; // allow `response.empty()`
+            } else {
                 // for console executions.
                 context.error(
-                    'Invalid return from route. Use `response.empty()` for no expected response.',
+                    `Invalid return from route ${request.path}. Use 'response.empty()' if no response is expected.`,
                 );
 
                 // return as per original implementation,
