@@ -54,7 +54,7 @@ router.post('/:user/:transaction', (request, response) => {
 express.use('/router', router);
 
 // get method only for testing `Cannot [method] '[path]'`
-express.get('/get', (request, response) => {
+express.get('/get', (_, __) => {
     // this route isn't called while testing.
     // response.send('get');
 });

@@ -6,6 +6,7 @@
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {
+    "tests": "node tests/test.js",
     "lint": "prettier . --check",
     "format": "prettier . --write"
   },
