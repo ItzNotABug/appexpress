@@ -41,6 +41,6 @@ export function requestMethods() {
         patch: new Map(),
         delete: new Map(),
         options: new Map(),
-        all: new Map()
+        all: new Map(),
     };
 }
