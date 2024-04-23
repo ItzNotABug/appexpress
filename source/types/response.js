@@ -100,7 +100,7 @@ class AppExpressResponse {
     /**
      * Wrap the return value for safety.
      *
-     * This is helpful even if the developer ever forgets to use `return` in the `RequestHandler`
+     * This is helpful if the developer ever forgets to use `return` in the `RequestHandler`.
      *
      * @param {any} data - The data to wrap for safety.
      * @returns {data} - The same data but safely wrapped in a dynamic variable.
