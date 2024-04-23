@@ -13,6 +13,7 @@
     "tabWidth": 4,
     "singleQuote": true
   },
+  "homepage": "https://github.com/itznotabug/appexpress",
   "repository": {
     "type": "git",
     "url": "https://github.com/itznotabug/appexpress.git"
