@@ -20,7 +20,7 @@ class AppExpressResponse {
      * typically used when there's no need to send back any data to the source.
      */
     empty() {
-        return this._response.empty();
+        return this.#wrapReturnForSafety(this._response.empty());
     }
 
     /**
@@ -29,7 +29,7 @@ class AppExpressResponse {
      * @param {Object} data - The JSON data to send.
      */
     json(data) {
-        return this._response.json(data);
+        return this.#wrapReturnForSafety(this._response.json(data));
     }
 
     /**
@@ -38,7 +38,7 @@ class AppExpressResponse {
      * @param {string} url - The URL to redirect to.
      */
     redirect(url) {
-        return this._response.redirect(url);
+        return this.#wrapReturnForSafety(this._response.redirect(url));
     }
 
     /**
@@ -49,16 +49,18 @@ class AppExpressResponse {
      * @param {string} contentType='text/plain' - The content type of the response.
      */
     send(string, statusCode = 200, contentType = 'text/plain') {
-        return this._response.send(string, statusCode, {
-            'content-type': contentType,
-        });
+        return this.#wrapReturnForSafety(
+            this._response.send(string, statusCode, {
+                'content-type': contentType,
+            }),
+        );
     }
 
     /**
      * Send an HTML response back to the source which is rendered for the user.
      *
      * @param {string} stringHtml - The HTML string to send.
-     * @param {number} [statusCode=200] - The HTTP status code.
+     * @param {number} statusCode=200 - The HTTP status code.
      */
     html(stringHtml, statusCode = 200) {
         return this.send(stringHtml, statusCode, 'text/html');
@@ -93,6 +95,19 @@ class AppExpressResponse {
             this._context.error(`Failed to read HTML file: ${error}`);
             return this.send('Internal Server Error', 500, 'text/plain');
         }
+    }
+
+    /**
+     * Wrap the return value for safety.
+     *
+     * This is helpful even if the developer ever forgets to use `return` in the `RequestHandler`
+     *
+     * @param {any} data - The data to wrap for safety.
+     * @returns {data} - The same data but safely wrapped in a dynamic variable.
+     */
+    #wrapReturnForSafety(data) {
+        this._response.dynamic = data;
+        return this._response.dynamic;
     }
 }
 

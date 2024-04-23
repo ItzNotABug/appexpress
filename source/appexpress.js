@@ -367,7 +367,18 @@ class AppExpress {
             // clear the dependencies.
             this.#clearDependencies(context);
 
-            return routeHandlerResult;
+            if (routeHandlerResult) return routeHandlerResult;
+            else if (context.res.dynamic) return context.res.dynamic;
+            else {
+                // for console executions.
+                context.error(
+                    'Invalid return from route. Use `response.empty()` for no expected response.',
+                );
+
+                // return as per original implementation,
+                // open-runtimes > node* > src > server.js
+                return response.send('', 500);
+            }
         } else {
             // mimic express.js and return a similar error.
             const errorMessage = `Cannot ${request.method.toUpperCase()} '${request.path}'.`;
