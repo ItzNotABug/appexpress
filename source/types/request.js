@@ -183,25 +183,20 @@ class AppExpressRequest {
      * @throws {Error} - If no instance is found or if multiple instances are found without an identifier.
      */
     retrieve(type, identifier = '') {
-        const key = identifier ? `${type.name}:${identifier}` : type.name;
-        const found = this._request.dependencies.find(
-            (injection) =>
-                (injection.id
-                    ? `${injection.type.name}:${injection.id}`
-                    : injection.type.name) === key,
-        );
+        const objectName = type.name;
+        const key = identifier ? `${objectName}:${identifier}` : objectName;
 
-        if (!found) {
+        if (!this._request.dependencies.has(key)) {
             if (identifier) {
                 throw new Error(
-                    `No instance found for '${type.name}' with identifier '${identifier}'.`,
+                    `No instance found for '${objectName}' with identifier '${identifier}'.`,
                 );
             } else {
-                throw new Error(`No instance found for '${type.name}'.`);
+                throw new Error(`No instance found for '${objectName}'.`);
             }
         }
 
-        return found.instance;
+        return this._request.dependencies.get(key).instance;
     }
 
     /**

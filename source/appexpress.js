@@ -100,8 +100,8 @@ class AppExpress {
         /** @type {Array<MiddlewareHandler>} */
         this._middlewares = [];
 
-        /** @type {Array<{type: Function, id: string, instance: any}>} */
-        this._dependencies = [];
+        /** @type {InjectionRegistry} */
+        this._dependencies = new Map();
 
         /** @type string */
         this._viewsDirectory = '';
@@ -243,28 +243,23 @@ class AppExpress {
      * @throws {Error} - If an instance already exists.
      */
     inject(object, identifier = '') {
-        const type = object.constructor;
-        const key = identifier ? `${type.name}:${identifier}` : type.name;
-        const exists = this._dependencies.some(
-            (injection) =>
-                (injection.id
-                    ? `${injection.type.name}:${injection.id}`
-                    : injection.type.name) === key,
-        );
+        const objectType = object.constructor;
+        const objectName = objectType.name;
+        const key = identifier ? `${objectName}:${identifier}` : objectName;
 
-        if (exists) {
+        if (this._dependencies.has(key)) {
             if (identifier) {
                 throw new Error(
-                    `An instance of '${type.name}' with identifier '${identifier}' is already injected.`,
+                    `An instance of '${objectName}' with identifier '${identifier}' is already injected.`,
                 );
             } else {
                 throw new Error(
-                    `An instance of '${type.name}' is already injected.`,
+                    `An instance of '${objectName}' is already injected.`,
                 );
             }
         }
 
-        this._dependencies.push({ type, id: identifier, instance: object });
+        this._dependencies.set(key, { type: objectType, instance: object });
     }
 
     /**

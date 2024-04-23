@@ -21,6 +21,11 @@
  */
 
 /**
+ * @typedef {Map<string, {type: Function, instance: any}>} InjectionRegistry
+ * @description Manages and tracks dependency injections, mapping unique identifiers to their respective instances and types.
+ */
+
+/**
  * @typedef {Object} RequestMethods
  * @description Stores Maps of URL paths to handler functions for different HTTP request methods.
  *
