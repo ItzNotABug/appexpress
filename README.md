@@ -14,9 +14,7 @@ integration, and more.
     - [Middlewares](#middlewares)
     - [Parameters and Wildcards](#parameters-body-and-wildcards)
     - [Dependency Injection](#dependency-injection)
-    - [Rendering HTML](#rendering-html)
-- [Limitations](#limitations)
-- [Things To Keep In Mind](#things-to-keep-in-mind)
+    - [Rendering Content](#rendering-content)
 - [Requests and Response](#requests-and-response)
 
 ## Features
@@ -57,17 +55,17 @@ Define and handle routes similar to `express.js`:
 ```javascript
 // Simple GET route
 appExpress.get('/', (request, response) => {
-    return response.send('Welcome to AppExpress!');
+    response.send('Welcome to AppExpress!');
 });
 
 // JSON response
 appExpress.get('/hello', (request, response) => {
-    return response.json({ message: 'Hello World' });
+    response.json({ message: 'Hello World' });
 });
 
 // Route with a handler function
 const homePageHandler = (request, response) => {
-    return response.send('Home Page Content');
+    response.send('Home Page Content');
 };
 
 appExpress.get('/home', homePageHandler);
@@ -81,7 +79,7 @@ Incorporate middleware to process requests:
 // Logging middleware
 appExpress.use((request, _, log) => {
     log('Requested Path:', request.path);
-    // no need to return anything from here.
+    // no need to return anything from here
 });
 
 // Middleware for analytics
@@ -89,6 +87,7 @@ const analyticsMiddleware = (request, _, log, error) => {
     // Implement analytics logic here
     try {
         analyticsSingleton.log('path', request.path);
+        log(`recorded '${request.path}' for analytics`);
     } catch (err) {
         error(`Error logging to analytics: ${err.message}`);
     }
@@ -110,13 +109,13 @@ appExpress.get('/user/:id/:transactionID', async (request, response) => {
     const billing = new BillingClient();
     const result = await billing.verify(id, transactionID);
 
-    return response.send(result.message);
+    response.send(result.message);
 });
 
 appExpress.post('/verify', (request, response) => {
     const { sourceKey } = request.body;
-    // perform some checks with the `sourceKey`...
-    return response.json({ status: 'ok' });
+    // perform some checks with the `sourceKey`
+    response.json({ status: 'ok' });
 });
 
 // Wildcard route for 404 errors
@@ -129,14 +128,14 @@ Manage dependencies effectively within your application:
 
 ```javascript
 // Inject a repository
-const appwriteRepository = new Repository();
-appExpress.inject(appwriteRepository);
+const repository = new AppwriteRepository();
+appExpress.inject(repository);
 
 // Retrieve
-import Repository from '../data/repository.js'; // import for passing type.
+import AppwriteRepository from '../data/repository.js'; // import for passing type.
 appExpress.get('/user/auth/:userId', async (request, response) => {
     const { userId } = request.params;
-    const repository = request.retrieve(Repository);
+    const repository = request.retrieve(AppwriteRepository);
     const result = await repository.performAuth(userId);
 });
 ```
@@ -151,26 +150,26 @@ appExpress.inject(destinationRepository, 'destination');
 // Retrieve
 appExpress.post('/migration', async (request, response) => {
     const { sourceKey, destinationKey } = request.body;
-    // perform some checks with the API Keys...
+    // perform some checks with the API Keys
     const source = request.retrieve(Repository, 'source');
     const destination = request.retrieve(Repository, 'destination');
 
-    // perform a migration...
+    // perform a migration
     const migration = new Migration(source, destination);
     const result = await migration.mirrorDatabases();
 
-    return response.json({ result })
+    response.json({ result })
 });
 ```
 
-### Rendering HTML
+### Rendering Content
 
 1. Serve HTML from `file` (recommended):
     ```javascript
     // Set the directory for views
     appExpress.views('views/');
     
-    // Route to serve an HTML file
+    // Route to serve an HTML file from path `views/index.html`
     appExpress.get('/', (request, response) => response.htmlFromFile('index.html'));
     ```
 
@@ -179,34 +178,6 @@ appExpress.post('/migration', async (request, response) => {
     const htmlString = '...';
     appExpress.get('/', (request, response) => response.html(htmlString));
     ```
-
-## Limitations
-
-Currently, it is not possible to use something like a `express.Router()` for extending base paths.
-You will have to define each path manually like -
-
-```javascript
-appExpress.get('/members', membersRouteHandler);
-appExpress.get('/members/:memberID', singleMemberRouteHandler);
-appExpress.get('/members/:memberID/activity', memberActivityRouteHandler);
-```
-
-## Things To Keep In Mind
-
-You must **always** `return` from a route to properly exit the Appwrite Cloud Function.
-Example -
-
-```javascript
-// Working
-appExpress.get('/', (request, response) => {
-    return response.htmlFromFile('index.html');
-});
-
-// Won't work because `return` is missing.
-appExpress.get('/', (request, response) => {
-    response.htmlFromFile('index.html');
-});
-```
 
 ## Requests and Response
 

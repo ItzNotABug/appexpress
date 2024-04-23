@@ -7,5 +7,8 @@
 # readme in the source folder, only used for npm.
 source/README.md
 
+# test as server
+function/server.js
+
 # functions
 **/code.tar.gz
