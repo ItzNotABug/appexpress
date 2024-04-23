@@ -10,7 +10,7 @@ integration, and more.
 - [Installation](#installation)
 - [Getting Started](#getting-started)
     - [Initialize](#initialize)
-    - [Routes](#routes)
+    - [Navigation](#navigation)
     - [Middlewares](#middlewares)
     - [Parameters and Wildcards](#parameters-body-and-wildcards)
     - [Dependency Injection](#dependency-injection)
@@ -38,7 +38,6 @@ npm install @itznotabug/appexpress
 Create a new instance of `AppExpress`:
 
 ```javascript
-// import AppExpress here.
 const appExpress = new AppExpress();
 ```
 
@@ -48,7 +47,9 @@ const appExpress = new AppExpress();
 export default async (context) => await appExpress.attach(context);
 ```
 
-### Routes
+### Navigation
+
+#### 1. Direct route management
 
 Define and handle routes similar to `express.js`:
 
@@ -59,7 +60,7 @@ appExpress.get('/', (request, response) => {
 });
 
 // JSON response
-appExpress.get('/hello', (request, response) => {
+appExpress.post('/hello', (request, response) => {
     response.json({ message: 'Hello World' });
 });
 
@@ -71,30 +72,68 @@ const homePageHandler = (request, response) => {
 appExpress.get('/home', homePageHandler);
 ```
 
+#### 2. Router based route management
+
+You can also use `express.js` like routing logic with `AppExpress.Router`:
+
+1. Route File (`routes/test.js`) :
+    ```javascript
+    const router = new AppExpress.Router();
+    router.get('/ping', (request, response) => response.send('pong'));
+    router.post('/pong', (request, response) => response.send('ping'));
+    
+    export default router;
+    ```
+
+2. Main Index File (`index.js`) :
+    ```javascript
+    import testRouteHandler from './routes/test.js';
+    
+    appExpress.use('/test', testRouteHandler);
+    ```
+
 ### Middlewares
 
 Incorporate middleware to process requests:
 
-```javascript
-// Logging middleware
-appExpress.use((request, _, log) => {
-    log('Requested Path:', request.path);
-    // no need to return anything from here
-});
+1. Direct:
+    ```javascript
+    appExpress.middleware((request, log) => {
+        log('Requested Path:', request.path);
+    });
+    ```
 
-// Middleware for analytics
-const analyticsMiddleware = (request, _, log, error) => {
-    // Implement analytics logic here
-    try {
-        analyticsSingleton.log('path', request.path);
-        log(`recorded '${request.path}' for analytics`);
-    } catch (err) {
-        error(`Error logging to analytics: ${err.message}`);
-    }
-};
+2. Using variable:
+    ```javascript
+    // middlewares/analytics.js
+    export const analyticsMiddleware = (request, log, error) => {
+        // Implement analytics logic here
+        try {
+            analyticsSingleton.log('path', request.path);
+            log(`logged a ${request.path} to analytics!`);
+        } catch (err) {
+            error(`Error logging to analytics: ${err.message}`);
+        }
+    };
+    
+    // index.js
+    import analytics from './middlewares/analytics.js';
+    appExpress.middleware(analytics);
+    ```
 
-appExpress.use(analyticsMiddleware);
-```
+3. Exiting the Middleware chain:
+    ```javascript
+    appExpress.middleware((request, log) => {
+        const { userJwtToken } = request.body;
+        const isConsole = request.path.includes('/console');
+    
+        if (isConsole && !userJwtToken) {
+            throw Error('No JWT Token found, aborting the requests.');
+        }
+    });
+    ```
+
+**Note: Middlewares are processed in the order they are added.**
 
 ### Parameters, Body and Wildcards
 
@@ -105,7 +144,7 @@ Capture URL parameters and utilize wildcard routes:
 appExpress.get('/user/:id/:transactionID', async (request, response) => {
     const { id, transactionID } = request.params;
 
-    // perform some validation here...
+    // perform some validation here
     const billing = new BillingClient();
     const result = await billing.verify(id, transactionID);
 
@@ -127,12 +166,13 @@ appExpress.get('*', (_, response) => response.send('404 Not Found'));
 Manage dependencies effectively within your application:
 
 ```javascript
-// Inject a repository
+// Inject a repository in your `index.js`
 const repository = new AppwriteRepository();
 appExpress.inject(repository);
 
-// Retrieve
-import AppwriteRepository from '../data/repository.js'; // import for passing type.
+// Retrieve in some other file like `./routes/auth.js`
+import AppwriteRepository from './data/repository.js';
+
 appExpress.get('/user/auth/:userId', async (request, response) => {
     const { userId } = request.params;
     const repository = request.retrieve(AppwriteRepository);
@@ -150,6 +190,7 @@ appExpress.inject(destinationRepository, 'destination');
 // Retrieve
 appExpress.post('/migration', async (request, response) => {
     const { sourceKey, destinationKey } = request.body;
+    
     // perform some checks with the API Keys
     const source = request.retrieve(Repository, 'source');
     const destination = request.retrieve(Repository, 'destination');
@@ -158,7 +199,7 @@ appExpress.post('/migration', async (request, response) => {
     const migration = new Migration(source, destination);
     const result = await migration.mirrorDatabases();
 
-    response.json({ result })
+    return response.json({ result })
 });
 ```
 
@@ -169,7 +210,7 @@ appExpress.post('/migration', async (request, response) => {
     // Set the directory for views
     appExpress.views('views/');
     
-    // Route to serve an HTML file from path `views/index.html`
+    // Route to serve an HTML file (file is rendered from `static/index.html`)
     appExpress.get('/', (request, response) => response.htmlFromFile('index.html'));
     ```
 
