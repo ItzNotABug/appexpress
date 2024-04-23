@@ -11,8 +11,13 @@
  */
 
 /**
- * @typedef {function(req: AppExpressRequest, res: AppExpressResponse, log: function(string): void, error: function(string): void): any} RequestHandler
+ * @typedef {function(request: AppExpressRequest, response: AppExpressResponse, log: function(string): void, error: function(string): void): any} RequestHandler
  * @description Represents a function that handles requests. It accepts a request object, a response object, and two logging functions (for logging and errors).
+ */
+
+/**
+ * @typedef {function(request: AppExpressRequest, log: function(string): void, error: function(string): void): any} MiddlewareHandler
+ * @description Represents a function that handles requests. It accepts a request object, and two logging functions (for logging and errors).
  */
 
 /**

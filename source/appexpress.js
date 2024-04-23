@@ -97,7 +97,7 @@ class AppExpress {
     };
 
     constructor() {
-        /** @type {Array<(req: AppExpressRequest, res: AppExpressResponse, log: function(string) : void, error: function(string): void) => Promise<void>>} */
+        /** @type {Array<MiddlewareHandler>} */
         this._middlewares = [];
 
         /** @type {Array<{type: Function, id: string, instance: any}>} */
@@ -113,21 +113,23 @@ class AppExpress {
     /**
      * Register a custom middleware.
      *
-     * @param {RequestHandler} middleware - The middleware function to add to the chain.
+     * @param {MiddlewareHandler} middleware - The middleware/request handler to add to the chain.
      *
      * @example
      * ```javascript
-     * appExpress.middleware((request, response, log, error) => {
+     * appExpress.middleware((request, log, error) => {
      *      // do something with `request` object.
      *
      *     log('this is a debug log');
      *     error('this is an error log');
+     *
+     *     // throw an Error here to exit the middleware chain.
      * });
      * ```
      *
      * @example
      * ```javascript
-     * const loggingMiddleware = (request, response, log, error) => {
+     * const loggingMiddleware = (request, log, error) => {
      *     // do something with `request` object.
      *
      *     log('this is a debug log');
@@ -345,12 +347,7 @@ class AppExpress {
             // execute the middlewares.
             if (this._middlewares.length > 0) {
                 for (const middleware of this._middlewares) {
-                    await middleware(
-                        request,
-                        response,
-                        context.log,
-                        context.error,
-                    );
+                    await middleware(request, context.log, context.error);
                 }
             } else {
                 // ignore, no middlewares.
