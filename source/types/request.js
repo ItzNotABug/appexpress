@@ -40,9 +40,9 @@ class AppExpressRequest {
     }
 
     /**
-     * Gets the headers of the request if present.
+     * Gets the headers of the request.
      *
-     * @returns {Object|undefined} The  request headers.
+     * @returns {Object<string, any>} The request headers.
      */
     get headers() {
         return this._request.headers;
@@ -51,7 +51,7 @@ class AppExpressRequest {
     /**
      * Get the request scheme (http or https).
      *
-     * @returns {Object|undefined} The scheme of the request.
+     * @returns {string} The scheme of the request.
      */
     get scheme() {
         return this._request.scheme;
@@ -60,7 +60,7 @@ class AppExpressRequest {
     /**
      * Get the request method (GET, POST, etc.)
      *
-     * @returns {string|undefined} The raw request body or undefined if not set.
+     * @returns {string} The raw request body.
      */
     get method() {
         return this._request.method.toLowerCase();
@@ -69,7 +69,7 @@ class AppExpressRequest {
     /**
      * Get the url of the request.
      *
-     * @returns {string|undefined} The full URL.
+     * @returns {string} The full URL.
      */
     get url() {
         return this._request.url;
@@ -78,7 +78,7 @@ class AppExpressRequest {
     /**
      * Get the hostname of the URL.
      *
-     * @returns {string|undefined} The URL host.
+     * @returns {string} The URL host.
      */
     get host() {
         return this._request.host;
@@ -87,17 +87,16 @@ class AppExpressRequest {
     /**
      * Get the port from the URL.
      *
-     * @returns {number|undefined} The URL port.
+     * @returns {number} The URL port.
      */
     get port() {
-        const port = this._request.port;
-        return port ? parseInt(port, 10) : undefined;
+        return parseInt(this._request.port, 10);
     }
 
     /**
      * Get the path part of the URL.
      *
-     * @returns {string|undefined} The URL path.
+     * @returns {string} The URL path.
      */
     get path() {
         return this._request.path;
@@ -106,7 +105,7 @@ class AppExpressRequest {
     /**
      * Get the raw query params string from the URL.
      *
-     * @returns {string|undefined} The query string.
+     * @returns {string} The query string.
      */
     get queryString() {
         return this._request.queryString;
@@ -118,7 +117,7 @@ class AppExpressRequest {
      * @returns {Object<string, any>} The parsed params.
      */
     get params() {
-        return this._request.params;
+        return this._request.params ?? {};
     }
 
     /**
@@ -144,7 +143,7 @@ class AppExpressRequest {
      *
      * Can be `event`, `http` or `scheduled`.
      *
-     * @returns {'event'|'http'|'scheduled'|undefined} The trigger type.
+     * @returns {'event'|'http'|'scheduled'} The trigger type.
      */
     get triggeredType() {
         return this.headers['x-appwrite-trigger'];
