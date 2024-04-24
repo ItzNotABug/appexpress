@@ -13,6 +13,39 @@ class AppExpressResponse {
     constructor(context) {
         this._context = context;
         this._response = context.res;
+
+        /** @type {Object<string, string|number>} */
+        this._customHeaders = {};
+    }
+
+    /**
+     * Add custom headers to send back to the source.
+     *
+     * **Note**: If you call `setHeaders` multiple times for a request,
+     * remember that all the headers are combined when sent back to the source.
+     *
+     * **Also Note**: A duplicate header will be overridden with the value from the last call.
+     *
+     * @param {Object<string, string|number>} headers - Custom headers to send back to the source.
+     * @throws {Error} - If the header value is not a string or a number.
+     */
+    setHeaders(headers) {
+        for (const [headerKey, value] of Object.entries(headers)) {
+            if (typeof value !== 'string' && typeof value !== 'number') {
+                throw new Error(
+                    `Custom headers only support values of type string or number. Provided type for key '${headerKey}': ${typeof value}.`,
+                );
+            }
+
+            this._customHeaders[headerKey] = value;
+        }
+    }
+
+    /**
+     * Clears all the headers added via `setHeaders`.
+     */
+    clearHeaders() {
+        this._customHeaders = {};
     }
 
     /**
@@ -52,6 +85,7 @@ class AppExpressResponse {
         return this.#wrapReturnForSafety(
             this._response.send(string, statusCode, {
                 'content-type': contentType,
+                ...this._customHeaders,
             }),
         );
     }
