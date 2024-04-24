@@ -1,11 +1,13 @@
 {
   "name": "@itznotabug/appexpress",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "An `express.js` like framework for Appwrite Functions, enabling super-easy navigation!",
   "author": "@itznotabug",
   "type": "module",
+  "main": "appexpress.js",
   "license": "Apache-2.0",
   "scripts": {
+    "tests": "node tests/test.js",
     "lint": "prettier . --check",
     "format": "prettier . --write"
   },
@@ -13,6 +15,7 @@
     "tabWidth": 4,
     "singleQuote": true
   },
+  "homepage": "https://github.com/itznotabug/appexpress",
   "repository": {
     "type": "git",
     "url": "https://github.com/itznotabug/appexpress.git"
