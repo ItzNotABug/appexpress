@@ -1,6 +1,9 @@
 import * as crypto from 'node:crypto';
 import AppExpress from '../../appexpress.js';
 
+/**
+ * Sample repository for `DI`.
+ */
 class LoremIpsumRepository {
     constructor() {
         this._loremIpsum =
@@ -27,6 +30,19 @@ express.middleware((request) => {
 
     if (isConsole && !userJwtToken) {
         throw Error('No JWT Token found, aborting the requests.');
+    }
+});
+
+// middleware for direct return
+express.middleware((request, response) => {
+    const isFavIconPath =
+        request.method === 'get' && request.path.includes('assets');
+    if (isFavIconPath) {
+        const { mode } = request.query;
+        response.send(
+            `we don't really have a ${mode ? 'dark ' : ''}favicon yet, sorry`,
+            404,
+        );
     }
 });
 
@@ -78,6 +94,17 @@ injectionRouter.get('/error', (request, response) => {
 });
 
 express.use('/lorem_ipsum', injectionRouter);
+
+// return custom headers
+const headersRouter = new AppExpress.Router();
+headersRouter.get('/:uuid', (request, response) => {
+    const { uuid } = request.params;
+    response.setHeaders({ 'custom-header': uuid });
+    response.send(uuid);
+});
+
+headersRouter.get('/clear', (_, response) => response.send('cleared'));
+express.use('/headers', headersRouter);
 
 // Appwrite Function Entrypoint!
 export default async (context) => await express.attach(context);
