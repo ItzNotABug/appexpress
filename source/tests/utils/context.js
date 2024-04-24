@@ -20,11 +20,20 @@ export const createContext = ({
             headers,
             ...requestOptions,
         },
+
+        /**
+         * As per [server.js](https://github.com/open-runtimes/open-runtimes/blob/16bf063b60f1f2a150b6caa9afdd2d1786e7ca35/runtimes/node-18.0/src/server.js#L87C9-L106C11),
+         * all methods except `empty()` support `statusCode` & `headers` but they are managed internally.
+         */
         res: {
             empty: () => '',
             redirect: (url) => url,
             json: (object) => object,
-            send: (body, statusCode) => ({ body, statusCode }),
+            send: (body, statusCode, headers) => ({
+                body,
+                statusCode,
+                headers,
+            }),
         },
         log: (_) => '', // empty for the sake of testing
         error: (_) => '', // empty for the sake of testing
