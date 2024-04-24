@@ -16,11 +16,6 @@
  */
 
 /**
- * @typedef {function(request: AppExpressRequest, log: function(string): void, error: function(string): void): any} MiddlewareHandler
- * @description Represents a function that handles requests. It accepts a request object, and two logging functions (for logging and errors).
- */
-
-/**
  * @typedef {Map<string, {type: Function, instance: any}>} InjectionRegistry
  * @description Manages and tracks dependency injections, mapping unique identifiers to their respective instances and types.
  */

@@ -97,7 +97,7 @@ class AppExpress {
     };
 
     constructor() {
-        /** @type {Array<MiddlewareHandler>} */
+        /** @type {RequestHandler[]} */
         this._middlewares = [];
 
         /** @type {InjectionRegistry} */
@@ -113,11 +113,13 @@ class AppExpress {
     /**
      * Register a custom middleware.
      *
-     * @param {MiddlewareHandler} middleware - The middleware/request handler to add to the chain.
+     * **Note**: `request.params` are not available to middlewares due to no `pattern` awareness.
+     *
+     * @param {RequestHandler} middleware - The middleware/request handler to add to the chain.
      *
      * @example
      * ```javascript
-     * appExpress.middleware((request, log, error) => {
+     * appExpress.middleware((request, response, log, error) => {
      *      // do something with `request` object.
      *
      *     log('this is a debug log');
@@ -129,11 +131,13 @@ class AppExpress {
      *
      * @example
      * ```javascript
-     * const loggingMiddleware = (request, log, error) => {
+     * const loggingMiddleware = (request, response, log, error) => {
      *     // do something with `request` object.
      *
      *     log('this is a debug log');
      *     error('this is an error log');
+     *
+     *     response.send('logged') // this will exit the function.
      * };
      *
      * appExpress.middleware(loggingMiddleware);
@@ -278,11 +282,15 @@ class AppExpress {
      */
     async #handleRequest(context) {
         // appwrite context.
-        this.context = context;
+        this._context = context;
 
         // build the request and response.
         const request = new AppExpressRequest(context);
         const response = new AppExpressResponse(context);
+
+        // add the injections.
+        context.req.dependencies = this._dependencies;
+        if (this._viewsDirectory) context.res.views = this._viewsDirectory;
 
         // find the route...
         const method = request.method;
@@ -302,12 +310,9 @@ class AppExpress {
 
                 if (match) {
                     const keys = path.match(/:\w+/g);
-                    if (keys)
-                        this.#extractParamsFromRoute(
-                            context,
-                            request.path,
-                            path,
-                        );
+                    if (keys) {
+                        this.#extractParamsFromRoute(request.path, path);
+                    }
 
                     routeHandler = handler;
                     break;
@@ -334,47 +339,26 @@ class AppExpress {
             if (!routeHandler) routeHandler = this._routes.all.get('*');
         }
 
+        // execute the middlewares.
+        for (const middleware of this._middlewares) {
+            // allowing middlewares to return things,
+            // example: a favicon handler or an auth check middleware.
+            await middleware(request, response, context.log, context.error);
+
+            // a middleware might return something.
+            if (this.#contextHasReturn()) break;
+        }
+
+        if (this.#contextHasReturn()) {
+            // a middleware indeed returned something.
+            return this.#processHandlerResult(request, response);
+        }
+
         if (routeHandler) {
-            // add the injections.
-            context.req.dependencies = this._dependencies;
-            if (this._viewsDirectory) context.res.views = this._viewsDirectory;
-
-            // execute the middlewares.
-            if (this._middlewares.length > 0) {
-                for (const middleware of this._middlewares) {
-                    await middleware(request, context.log, context.error);
-                }
-            } else {
-                // ignore, no middlewares.
-            }
-
             // execute the route handler.
-            const routeHandlerResult = await routeHandler(
-                request,
-                response,
-                context.log,
-                context.error,
-            );
+            await routeHandler(request, response, context.log, context.error);
 
-            // clear the dependencies.
-            this.#clearDependencies(context);
-
-            if (routeHandlerResult) return routeHandlerResult;
-            else if (
-                context.res.dynamic !== null &&
-                context.res.dynamic !== undefined
-            ) {
-                return context.res.dynamic; // allow `response.empty()`
-            } else {
-                // for console executions.
-                context.error(
-                    `Invalid return from route ${request.path}. Use 'response.empty()' if no response is expected.`,
-                );
-
-                // return as per original implementation,
-                // open-runtimes > node* > src > server.js
-                return response.send('', 500);
-            }
+            return this.#processHandlerResult(request, response);
         } else {
             // mimic express.js and return a similar error.
             const errorMessage = `Cannot ${request.method.toUpperCase()} '${request.path}'.`;
@@ -390,11 +374,10 @@ class AppExpress {
     /**
      * Extract dynamic params for the request.
      *
-     * @param {AppwriteFunctionContext} context - The context provided by the executed `Appwrite Function`.
      * @param {string} requestPath - The request path. Example : `/users/a4d3b4a80`
      * @param {string} routePathPattern - The pattern of the path intended for extraction. Example : `/users/:id`
      */
-    #extractParamsFromRoute(context, requestPath, routePathPattern) {
+    #extractParamsFromRoute(requestPath, routePathPattern) {
         const pathParts = requestPath.split('/').filter((part) => part.length);
         const patternParts = routePathPattern
             .split('/')
@@ -403,24 +386,22 @@ class AppExpress {
         if (patternParts.length !== pathParts.length) return;
 
         // default empty list.
-        context.req.params = {};
+        this._context.req.params = {};
 
         for (let index = 0; index < patternParts.length; index++) {
             if (patternParts[index].startsWith(':')) {
                 const paramName = patternParts[index].substring(1);
-                context.req.params[paramName] = pathParts[index];
+                this._context.req.params[paramName] = pathParts[index];
             }
         }
     }
 
     /**
      * Clears the dependency if any was injected.
-     *
-     * @param {AppwriteFunctionContext} context
      */
-    #clearDependencies(context) {
+    #clearDependencies() {
         this._dependencies.length = 0;
-        context.req.dependencies.length = 0;
+        this._context.req.dependencies.length = 0;
     }
 
     /**
@@ -437,6 +418,43 @@ class AppExpress {
             fullPath = fullPath.slice(0, -1);
         }
         return fullPath;
+    }
+
+    /**
+     * Check if the appwrite context has the dynamic return.
+     *
+     * @returns {boolean}
+     */
+    #contextHasReturn() {
+        const context = this._context;
+        return (
+            context.res.dynamic !== null && context.res.dynamic !== undefined
+        );
+    }
+
+    /**
+     * Handles the result from either the middleware or the router handler.
+     *
+     * @param {AppExpressRequest} request
+     * @param {AppExpressResponse} response
+     * @returns {*} The result from the `routeHandlerResult`.
+     */
+    #processHandlerResult(request, response) {
+        // clear the dependencies.
+        this.#clearDependencies();
+
+        if (this.#contextHasReturn()) {
+            return this._context.res.dynamic; // allow `response.empty()`
+        } else {
+            // for console executions.
+            this._context.error(
+                `Invalid return from route ${request.path}. Use 'response.empty()' if no response is expected.`,
+            );
+
+            // return as per original implementation,
+            // open-runtimes > node* > src > server.js
+            return response.send('', 500);
+        }
     }
 
     /**
