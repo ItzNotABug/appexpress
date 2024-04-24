@@ -33,5 +33,6 @@ Try with the urls listed below for testing different routes -
 | https://appexpress.appwrite.global/all                                                 | Do any type of request, you'll only see one message.          |
 | https://appexpress.appwrite.global/post                                                | Do a `POST` request with Postman or cURL.                     |
 | https://appexpress.appwrite.global/dump                                                | Do a `GET` request and see a dumped `request`.                |
+| https://appexpress.appwrite.global/health                                              | Do a `GET` request and see the container's uptime.            |
 | https://appexpress.appwrite.global/redirect?redirect_url=https://google.com            | Redirects to a given url. Defaults to my GitHub Profile.      |
 | https://appexpress.appwrite.global/users/b4b2f41ee0a3/74a56d192dc942f78675b4b2f41ee0a3 | Do a `GET` request, this route extracts `id` & `transaction`. |
