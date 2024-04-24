@@ -14,7 +14,7 @@
     "singleQuote": true
   },
   "dependencies": {
-    "@itznotabug/appexpress": "^0.1.6"
+    "@itznotabug/appexpress": "^0.2.0"
   },
   "devDependencies": {
     "prettier": "3.2.5"
