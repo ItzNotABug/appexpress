@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import assert from 'node:assert';
 import { describe, it } from 'node:test';
 
@@ -8,8 +9,8 @@ describe('Direct requests to all supported methods', () => {
     ['get', 'post', 'put', 'patch', 'delete', 'options'].forEach((method) => {
         it(`should return the ${method} method in response body`, async () => {
             const context = createContext({ method: method });
-            const response = await index(context);
-            assert.strictEqual(response.body, method);
+            const { body } = await index(context);
+            assert.strictEqual(body, method);
         });
     });
 });
@@ -18,8 +19,8 @@ describe('Uniform response on `all` endpoint across methods', () => {
     ['get', 'post', 'put', 'patch', 'delete', 'options'].forEach((method) => {
         it(`should receive 'same on all' response using ${method} method`, async () => {
             const context = createContext({ path: '/all', method: method });
-            const response = await index(context);
-            assert.strictEqual(response.body, 'same on all');
+            const { body } = await index(context);
+            assert.strictEqual(body, 'same on all');
         });
     });
 });
@@ -44,8 +45,8 @@ describe('Responses from router-handled endpoints', () => {
             method: 'post',
             path: `/router/${user}`,
         });
-        const response = await index(context);
-        assert.strictEqual(response.body, user);
+        const { body } = await index(context);
+        assert.strictEqual(body, user);
     });
 
     it('should return a structured response for POST /router/:user/:transaction', async () => {
@@ -64,11 +65,8 @@ describe('Handling invalid method requests to specific endpoints', () => {
     ['post', 'put', 'patch', 'delete', 'options'].forEach((method) => {
         it(`should return an error when using ${method.toUpperCase()} on '/get' endpoint`, async () => {
             const context = createContext({ path: '/get', method: method });
-            const response = await index(context);
-            assert.strictEqual(
-                response.body,
-                `Cannot ${method.toUpperCase()} '/get'.`,
-            );
+            const { body } = await index(context);
+            assert.strictEqual(body, `Cannot ${method.toUpperCase()} '/get'.`);
         });
     });
 });
@@ -77,11 +75,8 @@ describe('Response for non-existing endpoints', () => {
     ['get', 'post', 'put', 'patch', 'delete', 'options'].forEach((method) => {
         it(`should return an error for ${method.toUpperCase()} request to '/void'`, async () => {
             const context = createContext({ path: '/void', method: method });
-            const response = await index(context);
-            assert.strictEqual(
-                response.body,
-                `Cannot ${method.toUpperCase()} '/void'.`,
-            );
+            const { body } = await index(context);
+            assert.strictEqual(body, `Cannot ${method.toUpperCase()} '/void'.`);
         });
     });
 });
@@ -89,12 +84,12 @@ describe('Response for non-existing endpoints', () => {
 describe('Internal server error handling', () => {
     it('should return a 500 status code for invalid returns', async () => {
         const context = createContext({ path: '/get', method: 'get' });
-        const response = await index(context);
-        assert.strictEqual(response.statusCode, 500);
+        const { statusCode } = await index(context);
+        assert.strictEqual(statusCode, 500);
     });
 });
 
-describe('Middleware error handling', () => {
+describe('Middleware handling', () => {
     it('should throw an error when no JWT Token is found', async () => {
         const context = createContext({ path: '/console', method: 'get' });
         try {
@@ -116,17 +111,75 @@ describe('Middleware error handling', () => {
                     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
             },
         });
-        const response = await index(context);
-        assert.strictEqual(response.body, 'console');
+        const { body } = await index(context);
+        assert.strictEqual(body, 'console');
+    });
+
+    it('should return a message from the middleware', async () => {
+        const context = createContext({
+            path: '/assets/favicon',
+        });
+
+        const { body, statusCode } = await index(context);
+        assert.deepStrictEqual(
+            { body, statusCode },
+            {
+                body: `we don't really have a favicon yet, sorry`,
+                statusCode: 404,
+            },
+        );
+    });
+
+    it('should return a message from the middleware', async () => {
+        const context = createContext({
+            path: '/assets/favicon',
+            query: {
+                mode: 'dark',
+            },
+        });
+
+        const { body, statusCode } = await index(context);
+        assert.deepStrictEqual(
+            { body, statusCode },
+            {
+                body: `we don't really have a dark favicon yet, sorry`,
+                statusCode: 404,
+            },
+        );
+    });
+});
+
+describe('Custom headers validation', () => {
+    it('should return a custom header', async () => {
+        const randomHeaderValue = crypto.randomUUID().replace(/-/g, '');
+        const context = createContext({
+            path: `/headers/${randomHeaderValue}`,
+            method: 'get',
+        });
+        const { headers } = await index(context);
+        assert.strictEqual(headers['custom-header'], randomHeaderValue);
+    });
+
+    it('should only return the default header', async () => {
+        const context = createContext({
+            path: `/headers/clear`,
+            method: 'get',
+        });
+
+        const { headers } = await index(context);
+        // only the `content-type` should be available at this point.
+        assert.strictEqual(Object.keys(headers).length, 1);
+
+        assert.strictEqual(headers['content-type'], 'text/plain');
     });
 });
 
 describe('Injected dependency validation', () => {
     it('should return lorem ipsum text', async () => {
         const context = createContext({ path: '/lorem_ipsum', method: 'get' });
-        const response = await index(context);
+        const { body } = await index(context);
         assert.strictEqual(
-            response.body,
+            body,
             'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
         );
     });
