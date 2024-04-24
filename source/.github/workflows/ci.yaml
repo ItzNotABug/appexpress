@@ -3,7 +3,7 @@ name: Continuous Integration
 on:
   workflow_dispatch: # for manual runs
   pull_request:
-    types: [ opened, synchronize ]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   build-and-test:
