@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: Source CI
 
 on:
   workflow_dispatch: # for manual runs
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Run Lint
+    name: Run Lint and Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -21,6 +21,12 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
+        working-directory: ./source
 
       - name: Run Prettier
         run: npm run lint
+        working-directory: ./source
+
+      - name: Run Tests
+        run: npm run tests
+        working-directory: ./source
