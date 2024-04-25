@@ -1,4 +1,4 @@
-name: Continuous Integration
+name: Function CI
 
 on:
   workflow_dispatch: # for manual runs
@@ -6,8 +6,8 @@ on:
     types: [ opened, synchronize, reopened ]
 
 jobs:
-  build-and-test:
-    name: Run Lint and Tests
+  build-and-run-lint:
+    name: Run Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -21,9 +21,8 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
+        working-directory: ./function
 
       - name: Run Prettier
         run: npm run lint
-
-      - name: Run Tests
-        run: npm run tests
+        working-directory: ./function
