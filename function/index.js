@@ -5,6 +5,7 @@ import indexRouteHandler from './routes/index.js';
 import healthRouteHandler from './routes/health.js';
 import paramsRouteHandler from './routes/params.js';
 import redirectRouteHandler from './routes/redirect.js';
+import versionsRouteHandler from './routes/versions.js';
 import { favIconMiddleware } from './middlewares/favicon.js';
 import { authUserForConsoleMiddleware } from './middlewares/auth.js';
 import {
@@ -27,6 +28,8 @@ express.middleware(authUserForConsoleMiddleware);
 express.use('/', indexRouteHandler);
 express.use('/all', allRouteHandler);
 express.use('/health', healthRouteHandler);
+express.use('/health', healthRouteHandler);
+express.use('/versions', versionsRouteHandler);
 
 express.use('/redirect', redirectRouteHandler);
 express.use('/users/:id/:transaction', paramsRouteHandler);
