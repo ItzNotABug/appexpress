@@ -1,37 +1,47 @@
-import AppExpress from '@itznotabug/appexpress/appexpress.js';
+import AppExpress from '@itznotabug/appexpress';
 
-import {
-    allPagesRouteHandler,
-    dumpRouteHandler,
-    emptyRouteHandler,
-    indexPageRouteHandler,
-    paramsRouteHandler,
-    postPageRouteHandler,
-    redirectRouteHandler,
-} from './routes/handler.js';
-
+import allRouteHandler from './routes/all.js';
+import indexRouteHandler from './routes/index.js';
+import healthRouteHandler from './routes/health.js';
+import paramsRouteHandler from './routes/params.js';
+import redirectRouteHandler from './routes/redirect.js';
+import versionsRouteHandler from './routes/versions.js';
+import { favIconMiddleware } from './middlewares/favicon.js';
+import { authUserForConsoleMiddleware } from './middlewares/auth.js';
 import {
     debugLoggingMiddleware,
     errorLoggingMiddleware,
 } from './middlewares/logging.js';
 
-const appExpress = new AppExpress();
+const express = new AppExpress();
 
-// set view directory
-appExpress.views('static/');
+// set views directory
+express.views('static/');
 
 // custom middlewares
-appExpress.use(errorLoggingMiddleware);
-appExpress.use(debugLoggingMiddleware);
+express.middleware(favIconMiddleware);
+express.middleware(errorLoggingMiddleware);
+express.middleware(debugLoggingMiddleware);
+express.middleware(authUserForConsoleMiddleware);
 
-appExpress.get('/', indexPageRouteHandler);
-appExpress.get('/empty', emptyRouteHandler);
-appExpress.post('/post', postPageRouteHandler);
-appExpress.get('/redirect', redirectRouteHandler);
-appExpress.get('/users/:id/:transaction', paramsRouteHandler);
+// using router for management.
+express.use('/', indexRouteHandler);
+express.use('/all', allRouteHandler);
+express.use('/health', healthRouteHandler);
+express.use('/health', healthRouteHandler);
+express.use('/versions', versionsRouteHandler);
 
-appExpress.get('/dump', dumpRouteHandler);
-appExpress.all('/all', allPagesRouteHandler);
+express.use('/redirect', redirectRouteHandler);
+express.use('/users/:id/:transaction', paramsRouteHandler);
+
+// using the `RequestHandler` direct.
+express.get('/dump', (request, response) => {
+    response.json(JSON.parse(request.dump()));
+});
+
+express.get('/empty', (_, response) => response.empty());
+express.get('/console', (_, response) => response.empty());
+express.get('/ping', (_, response) => response.send('pong'));
 
 // Appwrite Function Entrypoint!
-export default async (context) => await appExpress.attach(context);
+export default async (context) => await express.attach(context);

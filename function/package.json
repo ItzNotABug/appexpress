@@ -1,6 +1,6 @@
 {
   "name": "appexpress-function",
-  "version": "1.0.0",
+  "version": "1.2.0",
   "description": "A demo function to showcase `appexpress` framework.",
   "author": "@itznotabug",
   "type": "module",
@@ -14,7 +14,7 @@
     "singleQuote": true
   },
   "dependencies": {
-    "@itznotabug/appexpress": "^0.1.6"
+    "@itznotabug/appexpress": "^0.2.0"
   },
   "devDependencies": {
     "prettier": "3.2.5"
