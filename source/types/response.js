@@ -42,7 +42,7 @@ class AppExpressResponse {
     }
 
     /**
-     * Clears all the headers added via `setHeaders`.
+     * Clear all the headers added via `setHeaders`.
      */
     clearHeaders() {
         this._customHeaders = {};
@@ -118,6 +118,62 @@ class AppExpressResponse {
     }
 
     /**
+     * Render content from views using the pre-set engine.
+     *
+     * @param {string} filePath - The name of the file to render.\
+     * **Note: If you have set up multiple engines, use the file extension as well.**
+     * @param {{}} options - The options for the rendering engine.
+     * @param {number} statusCode=200 - The HTTP status code.
+     * @returns {Promise<*>} A promise that resolves when the view engine rendered content has been sent.
+     */
+    async render(filePath, options = {}, statusCode = 200) {
+        const engines = this._response._engine ?? new Map();
+
+        if (!engines.size) throw Error('No view engine found.');
+
+        let usablePath;
+        let fileExtension = /(?:\.([^.]+))?$/.exec(filePath)[1];
+
+        if (!fileExtension) {
+            if (engines.size === 1) {
+                fileExtension = engines.keys().next().value;
+                usablePath = `${filePath}.${fileExtension}`;
+            } else {
+                throw new Error(
+                    'You seem to have set multiple view engines; please use file paths with extension.',
+                );
+            }
+        } else {
+            usablePath = filePath;
+        }
+
+        try {
+            usablePath = this.#usablePath(usablePath);
+            const engineSettings = engines.get(fileExtension);
+
+            // currently used only for `hbs`.
+            this.#handleEngineConfigs(engineSettings.options, options);
+
+            const renderedContent = await new Promise((resolve, reject) => {
+                engineSettings.engine(
+                    usablePath,
+                    options,
+                    function (error, content) {
+                        if (error) reject(error);
+                        else resolve(content);
+                    },
+                );
+            });
+
+            return this.html(renderedContent, statusCode);
+        } catch (error) {
+            console.log(error);
+            this._context.error(`Failed to render content: ${error}`);
+            return this.send('Internal Server Error', 500, 'text/plain');
+        }
+    }
+
+    /**
      * Reads a file asynchronously and returns its contents as a Buffer.
      *
      * @param {string} path - The path to the file relative to a base path.
@@ -127,9 +183,7 @@ class AppExpressResponse {
     async readFile(path, encoding = null) {
         const options = {};
 
-        const filePath = this.#buildFilePath(path);
-        const usablePath = this.#basePath(filePath);
-
+        const usablePath = this.#usablePath(path);
         if (encoding) options.encoding = encoding;
 
         try {
@@ -141,14 +195,35 @@ class AppExpressResponse {
     }
 
     /**
+     * Add configs to option settings.
+     *
+     * @param {Object} engineOptions - The user set options from view engine map.
+     * @param {Object} options - The options where the engine options are copied to.
+     */
+    #handleEngineConfigs(engineOptions, options) {
+        options.settings = { ...engineOptions };
+    }
+
+    /**
+     * Builds and returns a directly usable path to the file.
+     *
+     * @param {string} path - The base path of the file.
+     * @returns {string} The full usable path.
+     */
+    #usablePath(path) {
+        const filePath = this.#buildFilePath(path);
+        return this.#basePath(filePath);
+    }
+
+    /**
      * Adds the views directory (if exists) as the correct prefix.
      *
      * @param {string} fileName - The name of the file.
      * @returns {string} The correct path for the given file.
      */
     #buildFilePath(fileName) {
-        return this._response.views
-            ? `${this._response.views}/${fileName}`
+        return this._response._views
+            ? `${this._response._views}/${fileName}`
             : `${fileName}`;
     }
 
@@ -169,7 +244,7 @@ class AppExpressResponse {
      * This is helpful if the developer ever forgets to use `return` in the `RequestHandler`.
      *
      * @param {any} data - The data to wrap for safety.
-     * @returns {data} - The same data but safely wrapped in a dynamic variable.
+     * @returns {data} The same data but safely wrapped in a dynamic variable.
      */
     #wrapReturnForSafety(data) {
         this._response.dynamic = data;
