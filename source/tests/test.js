@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import index from './entrypoint/index.js';
+import index from './src/function/index.js';
 import { createContext } from './utils/context.js';
 
 describe('Direct requests to all supported methods', () => {
@@ -83,7 +83,7 @@ describe('Response for non-existing endpoints', () => {
 
 describe('Internal server error handling', () => {
     it('should return a 500 status code for invalid returns', async () => {
-        const context = createContext({ path: '/get', method: 'get' });
+        const context = createContext({ path: '/get' });
         const { statusCode } = await index(context);
         assert.strictEqual(statusCode, 500);
     });
@@ -197,5 +197,39 @@ describe('Injected dependency validation', () => {
                 `No instance found for 'LoremIpsumRepository'.`,
             );
         }
+    });
+});
+
+describe('render template contents', () => {
+    const expectedReturn = `<h1>Welcome to AppExpress</h1>`;
+
+    it('should return rendered content from EJS template', async () => {
+        const context = createContext({ path: '/engines/ejs' });
+        const { body } = await index(context);
+        assert.strictEqual(body, expectedReturn);
+    });
+
+    it('should return rendered content from HBS template', async () => {
+        const context = createContext({ path: '/engines/hbs' });
+        const { body } = await index(context);
+        assert.strictEqual(body, expectedReturn);
+    });
+
+    it('should return rendered content from PUG template', async () => {
+        const context = createContext({ path: '/engines/pug' });
+        const { body } = await index(context);
+        assert.strictEqual(body, expectedReturn);
+    });
+
+    it('should return rendered content from a custom defined (apw) template', async () => {
+        const context = createContext({ path: '/engines/apw' });
+        const { body } = await index(context);
+        assert.strictEqual(body, expectedReturn);
+    });
+
+    it('should return rendered content from a custom defined Markdown template', async () => {
+        const context = createContext({ path: '/engines/md' });
+        const { body } = await index(context);
+        assert.strictEqual(body, expectedReturn);
     });
 });

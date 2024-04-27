@@ -1,5 +1,10 @@
-import * as crypto from 'node:crypto';
-import AppExpress from '../../appexpress.js';
+import fs from 'fs';
+import ejs from 'ejs';
+import hbs from 'hbs';
+import pug from 'pug';
+import crypto from 'crypto';
+import showdown from 'showdown';
+import AppExpress from '../../../appexpress.js';
 
 /**
  * Sample repository for `DI`.
@@ -17,6 +22,43 @@ const express = new AppExpress();
 const router = new AppExpress.Router();
 const repositoryOne = new LoremIpsumRepository();
 const repositoryTwo = new LoremIpsumRepository();
+
+express.engine('ejs', ejs);
+express.engine('hbs', hbs);
+express.engine('pug', pug);
+
+// apw is appwrite, hehe.
+express.engine('apw', (filePath, options, callback) => {
+    fs.readFile(filePath, (error, content) => {
+        if (error) return callback(error);
+        const rendered = content
+            .toString()
+            .replace(/#([^#]+)#/g, (match, key) => options[key] || match)
+            .replace(/@\/?headerOne/g, (match) =>
+                match === '@headerOne' ? '<h1>' : '</h1>',
+            );
+
+        return callback(null, rendered);
+    });
+});
+
+// we used a % placeholder in our sample markdown.
+express.engine('md', (filePath, options, callback) => {
+    fs.readFile(filePath, (error, content) => {
+        if (error) return callback(error);
+        let rendered = content
+            .toString()
+            .replace(/%([^%]+)%/g, (match, key) => options[key] || match);
+
+        const converter = new showdown.Converter();
+        converter.setOption('noHeaderId', true);
+        rendered = converter.makeHtml(rendered);
+
+        return callback(null, rendered);
+    });
+});
+
+express.views('views');
 
 // inject for later usage
 express.inject(repositoryOne, 'one');
@@ -105,6 +147,12 @@ headersRouter.get('/:uuid', (request, response) => {
 
 headersRouter.get('/clear', (_, response) => response.send('cleared'));
 express.use('/headers', headersRouter);
+
+express.get('/engines/:extension', async (request, response) => {
+    await response.render(`sample.${request.params.extension}`, {
+        title: 'AppExpress',
+    });
+});
 
 // Appwrite Function Entrypoint!
 export default async (context) => await express.attach(context);
