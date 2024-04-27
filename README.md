@@ -38,6 +38,7 @@ npm install @itznotabug/appexpress
 Create a new instance of `AppExpress`:
 
 ```javascript
+import AppExpress from "@itznotabug/appexpress";
 const appExpress = new AppExpress();
 ```
 
