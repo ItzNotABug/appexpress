@@ -104,10 +104,75 @@ class AppExpress {
         this._dependencies = new Map();
 
         /** @type string */
-        this._viewsDirectory = '';
+        this._views = '';
 
         /** @type RequestMethods */
         this._routes = requestMethods();
+
+        /** @type ViewEngineHandler */
+        this._engine = new Map();
+    }
+
+    /**
+     * Set a custom view engine.\
+     * Current supported engines are - `ejs`, `hbs` & `pug`.
+     *
+     * You can create a custom engine too!
+     *
+     * Define Engine:
+     * ```javascript
+     * import fs from 'fs';
+     *
+     * // set views directory
+     * appExpress.views('views')
+     *
+     * appExpress.engine('ntl', (filePath, options, callback) => {
+     *   fs.readFile(filePath, (err, content) => {
+     *     if (err) return callback(err)
+     *
+     *     const rendered = content.toString()
+     *       .replace('#title#', `<title>${options.title}</title>`);
+     *       // or use a regex to filter content pattern.
+     *     return callback(null, rendered)
+     *   })
+     * })
+     * ```
+     *
+     * Template file (`index.ntl`):
+     * ```
+     * <h1>#title#</h1>
+     * ```
+     *
+     * Usage:
+     *```javascript
+     * app.get('/', (req, res) => {
+     *   res.render('index', { title: 'AppExpress' })
+     * })
+     * ```
+     *
+     * @param {string} ext - The file extension for the engine.
+     * @param {any} engine - The view engine that will be used for rendering content.
+     * @param {{ [key: string]: string }} options={} - Configure options for the view engine.
+     */
+    engine(ext, engine, options = {}) {
+        // [hbs, ejs, pug] <> express.
+        if (engine.hasOwnProperty('__express')) {
+            if (ext === 'hbs') options.views = this._views || '/';
+            this._engine.set(ext, { options, engine: engine.__express });
+        } else if (typeof engine === 'function') {
+            if (engine.length === 3) {
+                // wow! a custom engine!
+                this._engine.set(ext, { options, engine });
+            } else {
+                throw Error(
+                    `Your custom engine function must have exactly 3 methods (filePath, options, callback(error, content). Current length: ${engine.length}`,
+                );
+            }
+        } else {
+            throw Error(
+                'This view engine may be unsupported as it seems to be missing the function required for rendering content.',
+            );
+        }
     }
 
     /**
@@ -272,7 +337,7 @@ class AppExpress {
      * @param {string} directory='' - The directory path containing the html files.
      */
     views(directory = '') {
-        this._viewsDirectory = directory;
+        this._views = directory;
     }
 
     /**
@@ -288,9 +353,10 @@ class AppExpress {
         const request = new AppExpressRequest(context);
         const response = new AppExpressResponse(context);
 
-        // add the injections.
+        // setup response handler.
         context.req.dependencies = this._dependencies;
-        if (this._viewsDirectory) context.res.views = this._viewsDirectory;
+        if (this._views) context.res._views = this._views;
+        if (this._engine.size) context.res._engine = this._engine;
 
         // find the route...
         const method = request.method;
