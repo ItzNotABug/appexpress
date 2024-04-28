@@ -109,10 +109,10 @@ class AppExpressResponse {
      * @param {number} statusCode=200 - The HTTP status code to send.
      * @returns {*} - A promise that resolves when the file has been sent.
      */
-    async htmlFromFile(filePath, statusCode = 200) {
+    htmlFromFile(filePath, statusCode = 200) {
         try {
-            const htmlContent = await this.readFile(filePath, 'utf8');
-            return this.html(htmlContent, statusCode);
+            const htmlContent = this.readFile(filePath, 'utf8');
+            return this.#wrapForPromise(htmlContent, statusCode);
         } catch (error) {
             this._context.error(`Failed to read HTML file: ${error}`);
             return this.send('Internal Server Error', 500, 'text/plain');
