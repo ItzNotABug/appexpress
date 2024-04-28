@@ -1,9 +1,11 @@
-import fs from 'fs';
 import ejs from 'ejs';
-import hbs from 'hbs';
 import pug from 'pug';
-import crypto from 'crypto';
+import hbs from 'express-hbs';
 import showdown from 'showdown';
+
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
 import AppExpress from '../../../appexpress.js';
 
 /**
@@ -23,9 +25,26 @@ const router = new AppExpress.Router();
 const repositoryOne = new LoremIpsumRepository();
 const repositoryTwo = new LoremIpsumRepository();
 
-express.engine('ejs', ejs);
-express.engine('hbs', hbs);
-express.engine('pug', pug);
+express.views('views'); // set directory.
+
+express.engine('ejs', ejs); // ejs
+express.engine('pug', pug); // pub
+
+// hbs
+express.engine(
+    'hbs',
+    hbs.express4({
+        partialsDir: path.join(express.baseDirectory, 'views/partials'),
+    }),
+);
+
+// html x hbs
+express.engine(
+    'html',
+    hbs.express4({
+        partialsDir: path.join(express.baseDirectory, 'views/partials'),
+    }),
+);
 
 // apw is appwrite, hehe.
 express.engine('apw', (filePath, options, callback) => {
@@ -42,7 +61,7 @@ express.engine('apw', (filePath, options, callback) => {
     });
 });
 
-// we used a % placeholder in our sample markdown.
+// we use a `%` placeholder in our sample markdown.
 express.engine('md', (filePath, options, callback) => {
     fs.readFile(filePath, (error, content) => {
         if (error) return callback(error);
@@ -57,8 +76,6 @@ express.engine('md', (filePath, options, callback) => {
         return callback(null, rendered);
     });
 });
-
-express.views('views');
 
 // inject for later usage
 express.inject(repositoryOne, 'one');
@@ -148,9 +165,19 @@ headersRouter.get('/:uuid', (request, response) => {
 headersRouter.get('/clear', (_, response) => response.send('cleared'));
 express.use('/headers', headersRouter);
 
-express.get('/engines/:extension', async (request, response) => {
-    await response.render(`sample.${request.params.extension}`, {
+express.get('/engines/:extension', (request, response) => {
+    const fileName = `sample.${request.params.extension}`;
+    response.render(fileName, { title: 'AppExpress' });
+});
+
+express.get('/engines/hbs/article', (request, response) => {
+    const { extension } = request.query;
+    response.render(`article.${extension}`, {
         title: 'AppExpress',
+        subtitle: 'Routing for Appwrite Functions!',
+        content:
+            'An express.js like framework for Appwrite Functions, enabling super-easy navigation!',
+        author: '@ItzNotABug',
     });
 });
 
