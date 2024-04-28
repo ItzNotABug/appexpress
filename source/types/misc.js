@@ -34,7 +34,7 @@
  */
 
 /**
- * @typedef {Map<string, {options: {}, engine: any}>} ViewEngineHandler
+ * @typedef {Map<string, engine: any>} ViewEngineHandler
  * @description Stores a file extension and an engine's function call to render content.
  */
 
