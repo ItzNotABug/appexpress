@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import { requestMethods } from './types/misc.js';
 import AppExpressRequest from './types/request.js';
 import AppExpressResponse from './types/response.js';
@@ -111,11 +113,19 @@ class AppExpress {
 
         /** @type ViewEngineHandler */
         this._engine = new Map();
+
+        /**
+         * The base directory inside the docker container where the function is run.\
+         * See [here](https://github.com/open-runtimes/open-runtimes/blob/16bf063b60f1f2a150b6caa9afdd2d1786e7ca35/runtimes/node-18.0/src/server.js#L6) how the exact path is derived.
+         *
+         * @type string
+         */
+        this.baseDirectory = './src/function';
     }
 
     /**
      * Set a custom view engine.\
-     * Current supported engines are - `ejs`, `hbs` & `pug`.
+     * Out of the box supported engines are - `ejs`, `express-hbs`, `hbs` & `pug`.
      *
      * You can create a custom engine too!
      *
@@ -152,25 +162,24 @@ class AppExpress {
      *
      * @param {string} ext - The file extension for the engine.
      * @param {any} engine - The view engine that will be used for rendering content.
-     * @param {{ [key: string]: string }} options={} - Configure options for the view engine.
      */
-    engine(ext, engine, options = {}) {
-        // [hbs, ejs, pug] <> express.
+    engine(ext, engine) {
+        // `hbs`, `ejs`, `pug` have this variable,
+        // that is handled by express internally.
         if (engine.hasOwnProperty('__express')) {
-            if (ext === 'hbs') options.views = this._views || '/';
-            this._engine.set(ext, { options, engine: engine.__express });
+            this._engine.set(ext, engine.__express);
         } else if (typeof engine === 'function') {
-            if (engine.length === 3) {
-                // wow! a custom engine!
-                this._engine.set(ext, { options, engine });
-            } else {
-                throw Error(
+            // `express-hbs` uses 4 params,
+            // but adjusts to 3 dynamically.
+            if (engine.length >= 3) this._engine.set(ext, engine);
+            else {
+                throw new Error(
                     `Your custom engine function must have exactly 3 methods (filePath, options, callback(error, content). Current length: ${engine.length}`,
                 );
             }
         } else {
-            throw Error(
-                'This view engine may be unsupported as it seems to be missing the function required for rendering content.',
+            throw new Error(
+                'This view engine may be unsupported as it seems to be missing the function required to render content.',
             );
         }
     }
@@ -355,6 +364,7 @@ class AppExpress {
 
         // setup response handler.
         context.req.dependencies = this._dependencies;
+        context.res._baseDirectory = this.baseDirectory;
         if (this._views) context.res._views = this._views;
         if (this._engine.size) context.res._engine = this._engine;
 
@@ -417,23 +427,19 @@ class AppExpress {
 
         if (this.#contextHasReturn()) {
             // a middleware indeed returned something.
-            return this.#processHandlerResult(request, response);
+            return await this.#processHandlerResult();
         }
 
         if (routeHandler) {
             // execute the route handler.
             await routeHandler(request, response, context.log, context.error);
 
-            return this.#processHandlerResult(request, response);
+            return await this.#processHandlerResult();
         } else {
             // mimic express.js and return a similar error.
-            const errorMessage = `Cannot ${request.method.toUpperCase()} '${request.path}'.`;
-
-            // for console executions.
-            context.error(errorMessage);
-
-            // return the error as body.
-            return response.send(errorMessage, 404);
+            return this.#sendErrorResult(
+                `Cannot ${request.method.toUpperCase()} '${request.path}'.`,
+            );
         }
     }
 
@@ -501,26 +507,57 @@ class AppExpress {
     /**
      * Handles the result from either the middleware or the router handler.
      *
-     * @param {AppExpressRequest} request
-     * @param {AppExpressResponse} response
      * @returns {*} The result from the `routeHandlerResult`.
      */
-    #processHandlerResult(request, response) {
+    async #processHandlerResult() {
         // clear the dependencies.
         this.#clearDependencies();
 
         if (this.#contextHasReturn()) {
-            return this._context.res.dynamic; // allow `response.empty()`
+            const response = this._context.res;
+            const result = response.dynamic;
+
+            /**
+             * So what is happening here?
+             *
+             * Well, to allow a user directly call `render` without `await`,
+             * we save the `Promise` in the body and send it here for completion.
+             */
+            if (response.promise) {
+                try {
+                    result.body = await result.body;
+                    return result;
+                } catch (error) {
+                    return this.#sendErrorResult(
+                        `Error rendering a view, ${error}`,
+                    );
+                }
+            } else {
+                return result;
+            }
         } else {
-            // for console executions.
-            this._context.error(
+            const request = this._context.req;
+            return this.#sendErrorResult(
                 `Invalid return from route ${request.path}. Use 'response.empty()' if no response is expected.`,
             );
-
-            // return as per original implementation,
-            // open-runtimes > node* > src > server.js
-            return response.send('', 500);
         }
+    }
+
+    /**
+     * Return an error result to source.
+     *
+     * @param {string} error - The error message.
+     * @returns {*} The result to be sent back to source.
+     */
+    #sendErrorResult(error) {
+        // for console executions.
+        this._context.error(error);
+
+        // return as per original implementation,
+        // open-runtimes > node* > src > server.js
+        return this._context.res.send(error, 500, {
+            'content-type': 'text/plain',
+        });
     }
 
     /**

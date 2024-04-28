@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -105,7 +107,7 @@ class AppExpressResponse {
      *
      * @param {string} filePath - The file path to read HTML from.
      * @param {number} statusCode=200 - The HTTP status code to send.
-     * @returns {Promise<*>} - A promise that resolves when the file has been sent.
+     * @returns {*} - A promise that resolves when the file has been sent.
      */
     async htmlFromFile(filePath, statusCode = 200) {
         try {
@@ -122,14 +124,14 @@ class AppExpressResponse {
      *
      * @param {string} filePath - The name of the file to render.\
      * **Note: If you have set up multiple engines, use the file extension as well.**
-     * @param {{}} options - The options for the rendering engine.
+     * @param {Object} options - The options for the rendering engine.
      * @param {number} statusCode=200 - The HTTP status code.
-     * @returns {Promise<*>} A promise that resolves when the view engine rendered content has been sent.
+     * @returns {*} A promise that resolves when the view engine rendered content has been sent.
      */
-    async render(filePath, options = {}, statusCode = 200) {
+    render(filePath, options = {}, statusCode = 200) {
         const engines = this._response._engine ?? new Map();
 
-        if (!engines.size) throw Error('No view engine found.');
+        if (!engines.size) throw new Error('No view engine found.');
 
         let usablePath;
         let fileExtension = /(?:\.([^.]+))?$/.exec(filePath)[1];
@@ -151,23 +153,19 @@ class AppExpressResponse {
             usablePath = this.#usablePath(usablePath);
             const engineSettings = engines.get(fileExtension);
 
-            // currently used only for `hbs`.
-            this.#handleEngineConfigs(engineSettings.options, options);
+            // Handlebars engine requires default settings, originally supplied by express.
+            // Note: If 'options' already includes a 'settings' object, it will be preserved.
+            options.settings = options.settings || {};
 
-            const renderedContent = await new Promise((resolve, reject) => {
-                engineSettings.engine(
-                    usablePath,
-                    options,
-                    function (error, content) {
-                        if (error) reject(error);
-                        else resolve(content);
-                    },
-                );
+            const promise = new Promise((resolve, reject) => {
+                engineSettings(usablePath, options, function (error, content) {
+                    if (error) reject(error);
+                    else resolve(content);
+                });
             });
 
-            return this.html(renderedContent, statusCode);
+            return this.#wrapForPromise(promise, statusCode);
         } catch (error) {
-            console.log(error);
             this._context.error(`Failed to render content: ${error}`);
             return this.send('Internal Server Error', 500, 'text/plain');
         }
@@ -192,16 +190,6 @@ class AppExpressResponse {
             this._context.error(`Failed to read file: ${error}`);
             return null;
         }
-    }
-
-    /**
-     * Add configs to option settings.
-     *
-     * @param {Object} engineOptions - The user set options from view engine map.
-     * @param {Object} options - The options where the engine options are copied to.
-     */
-    #handleEngineConfigs(engineOptions, options) {
-        options.settings = { ...engineOptions };
     }
 
     /**
@@ -230,12 +218,31 @@ class AppExpressResponse {
     /**
      * Returns the base path where the function is running on the server.
      *
-     * See [here](https://github.com/open-runtimes/open-runtimes/blob/16bf063b60f1f2a150b6caa9afdd2d1786e7ca35/runtimes/node-18.0/src/server.js#L6) how the exact path is derived.
      * @param append='' - Any path to append to the base path
      * @returns {string} The base path of the function directory.
      */
     #basePath(append = '') {
-        return path.join(process.cwd(), `./src/function/${append}`);
+        return path.join(
+            process.cwd(),
+            `${this._response._baseDirectory}`,
+            `${append}`,
+        );
+    }
+
+    /**
+     * Helper function that wraps and returns back a Promise to render view.
+     *
+     * @param {Promise<*>} promise - Promise that contains the view rendering logic.
+     * @param {number} statusCode=200 - The HTTP status code.
+     * @returns {data} The same data but safely wrapped in a dynamic variable.
+     */
+    #wrapForPromise(promise, statusCode) {
+        const promiseDataType = this._response.send(promise, statusCode, {
+            'content-type': 'text/html',
+            ...this._customHeaders,
+        });
+
+        return this.#wrapReturnForSafety(promiseDataType, true);
     }
 
     /**
@@ -244,9 +251,12 @@ class AppExpressResponse {
      * This is helpful if the developer ever forgets to use `return` in the `RequestHandler`.
      *
      * @param {any} data - The data to wrap for safety.
+     * @param {boolean} isPromise - Whether the provided data is a `Promise`.
      * @returns {data} The same data but safely wrapped in a dynamic variable.
      */
-    #wrapReturnForSafety(data) {
+    #wrapReturnForSafety(data, isPromise = false) {
+        this._response.promise = isPromise;
+
         this._response.dynamic = data;
         return this._response.dynamic;
     }
