@@ -1,5 +1,8 @@
 // noinspection JSUnusedGlobalSymbols
 
+import fs from 'fs';
+import path from 'path';
+import mime from 'mime-types';
 import { requestMethods } from './types/misc.js';
 import AppExpressRequest from './types/request.js';
 import AppExpressResponse from './types/response.js';
@@ -347,6 +350,91 @@ class AppExpress {
      */
     views(directory = '') {
         this._views = directory;
+    }
+
+    /**
+     * Specify a path where your publicly accessible files are located.\
+     * Requests made to these files are handled via a `middleware` and are directly served.
+     *
+     * To use multiple static assets directories, you can call this function multiple times :
+     * ```javascript
+     * appExpress.public('public');
+     *
+     *  // exclude some files via name or RegExp.
+     * appExpress.public('files', ['.env', /config/g]);
+     * ```
+     *
+     * **Note**: The default encoding is `text/plain` if no or unknown extension is found for a file.
+     *
+     * @param {string} directory='' - The directory path containing the public files.
+     * @param {(string|RegExp)[]} [exclude=[]] - The directory path containing the public files.
+     */
+    public(directory = '', exclude = []) {
+        if (directory) {
+            const defType = 'text/plain';
+            const filesMapping = this.#processDirectory(directory, exclude);
+
+            this.middleware((request, response) => {
+                const requestedFile = filesMapping[request.path];
+                if (requestedFile) {
+                    const options = {};
+                    const contentType = mime.lookup(requestedFile) || defType;
+
+                    if (
+                        contentType.startsWith('text/') ||
+                        contentType === 'application/json'
+                    )
+                        options.encoding = 'utf8';
+
+                    const fileContent = fs.readFileSync(requestedFile, options);
+                    response.send(fileContent, 200, contentType);
+                }
+            });
+        }
+    }
+
+    /**
+     * Reads a given directory and builds file mappings.
+     *
+     * @param {string} directory - The directory to read.
+     * @param {(string|RegExp)[]} exclude - Name or regex pattern to exclude files,
+     * @returns {{}}
+     */
+    #processDirectory(directory, exclude) {
+        let filesMapping = {};
+        let directoryStack = [path.join(this.baseDirectory, directory)];
+
+        while (directoryStack.length) {
+            const currentPath = directoryStack.pop();
+            const contents = fs.readdirSync(currentPath, {
+                withFileTypes: true,
+            });
+
+            for (const content of contents) {
+                const contentName = content.name;
+                if (
+                    exclude.some((pattern) =>
+                        typeof pattern === 'string'
+                            ? contentName === pattern
+                            : pattern.test(contentName),
+                    )
+                ) {
+                    continue;
+                }
+
+                const fullPath = path.join(currentPath, content.name);
+
+                if (content.isDirectory()) {
+                    directoryStack.push(fullPath);
+                } else if (content.isFile()) {
+                    let relativePath = `/${path.relative(this.baseDirectory, fullPath)}`;
+                    relativePath = relativePath.replace(`/${directory}`, '');
+                    filesMapping[relativePath] = fullPath;
+                }
+            }
+        }
+
+        return filesMapping;
     }
 
     /**
