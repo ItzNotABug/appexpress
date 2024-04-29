@@ -1,3 +1,4 @@
+import fs from 'fs';
 import crypto from 'node:crypto';
 import assert from 'node:assert';
 import { describe, it } from 'node:test';
@@ -200,7 +201,7 @@ describe('Injected dependency validation', () => {
     });
 });
 
-describe('render template contents', () => {
+describe('Render template contents', () => {
     const expectedReturn = `<h1>Welcome to AppExpress</h1>`;
 
     it('should return rendered content from EJS template', async () => {
@@ -234,7 +235,7 @@ describe('render template contents', () => {
     });
 });
 
-describe('render partials contents on hbs engine', () => {
+describe('Render partials contents on hbs engine', () => {
     const expected = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>AppExpress</title></head><body><h1>AppExpress</h1><article><header><h3>Routing for Appwrite Functions!</h3></header><section>An express.js like framework for Appwrite Functions, enabling super-easy navigation!</section><footer><p>Written by: @ItzNotABug</p></footer></article></body></html>`;
 
     it('should render an article using the HBS extension and include content from a partial', async () => {
@@ -255,5 +256,60 @@ describe('render partials contents on hbs engine', () => {
         const { body } = await index(context);
         const cleanBody = body.replace(/\n/g, '').replace(/ {2,}/g, '');
         assert.strictEqual(cleanBody, expected);
+    });
+});
+
+describe('Public static resource handling', () => {
+    it('should return the contents of ads.txt', async () => {
+        const context = createContext({ path: '/ads.txt' });
+        const { body } = await index(context);
+        assert.strictEqual(
+            body,
+            'xyz.com af7df8e1-6586-4fc3-93be-26c07abf4a5d\n' +
+                'abc.com 700bbcaa-c4e2-4d50-8fb9-2946efbe987b\n' +
+                'pqr.com 178d1cb5-00b0-4fbe-95e6-be7df8409e72',
+        );
+    });
+
+    it('should return the contents of robots.txt', async () => {
+        const context = createContext({ path: '/robots.txt' });
+        const { body } = await index(context);
+        assert.strictEqual(body, 'User-agent: *\nDisallow: /');
+    });
+
+    it('should return Cannot GET /.env', async () => {
+        const context = createContext({ path: '/.env' });
+        const { body } = await index(context);
+        assert.strictEqual(body, `Cannot GET '/.env'.`);
+    });
+
+    it('should return contents from a nested directory', async () => {
+        const context = createContext({
+            path: '/.well-known/acme-challenge/dc64a9a5f9ca432ba8c6f2fe8e5c35be',
+        });
+        const { body } = await index(context);
+        assert.strictEqual(body, 'dc64a9a5f9ca432ba8c6f2fe8e5c35be');
+    });
+
+    it('should return contents from a css file in a nested directory', async () => {
+        const css = './src/function/public/static/css/styles.css';
+        const cssContent = fs.readFileSync(css, 'utf8');
+
+        const context = createContext({
+            path: '/static/css/styles.css',
+        });
+        const { body } = await index(context);
+        assert.strictEqual(body, cssContent);
+    });
+
+    it('should return contents from a js file in a nested directory', async () => {
+        const js = './src/function/public/static/js/window.js';
+        const jsContent = fs.readFileSync(js); // not served as text/*
+
+        const context = createContext({
+            path: '/static/js/window.js',
+        });
+        const { body } = await index(context);
+        assert.deepStrictEqual(body, jsContent);
     });
 });
