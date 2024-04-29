@@ -7,7 +7,7 @@
   "main": "appexpress.js",
   "license": "Apache-2.0",
   "scripts": {
-    "tests": "node tests/test.js",
+    "tests": "cd tests && node test.js",
     "lint": "prettier . --check",
     "format": "prettier . --write"
   },
@@ -21,7 +21,11 @@
     "url": "https://github.com/itznotabug/appexpress.git"
   },
   "devDependencies": {
-    "prettier": "3.2.5"
+    "ejs": "3.1.10",
+    "express-hbs": "2.5.0",
+    "pug": "3.0.2",
+    "prettier": "3.2.5",
+    "showdown": "2.1.0"
   },
   "keywords": [
     "appwrite",

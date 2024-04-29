@@ -1,5 +1,12 @@
-import * as crypto from 'node:crypto';
-import AppExpress from '../../appexpress.js';
+import ejs from 'ejs';
+import pug from 'pug';
+import hbs from 'express-hbs';
+import showdown from 'showdown';
+
+import fs from 'fs';
+import path from 'path';
+import crypto from 'crypto';
+import AppExpress from '../../../appexpress.js';
 
 /**
  * Sample repository for `DI`.
@@ -17,6 +24,58 @@ const express = new AppExpress();
 const router = new AppExpress.Router();
 const repositoryOne = new LoremIpsumRepository();
 const repositoryTwo = new LoremIpsumRepository();
+
+express.views('views'); // set directory.
+
+express.engine('ejs', ejs); // ejs
+express.engine('pug', pug); // pub
+
+// hbs
+express.engine(
+    'hbs',
+    hbs.express4({
+        partialsDir: path.join(express.baseDirectory, 'views/partials'),
+    }),
+);
+
+// html x hbs
+express.engine(
+    'html',
+    hbs.express4({
+        partialsDir: path.join(express.baseDirectory, 'views/partials'),
+    }),
+);
+
+// apw is appwrite, hehe.
+express.engine('apw', (filePath, options, callback) => {
+    fs.readFile(filePath, (error, content) => {
+        if (error) return callback(error);
+        const rendered = content
+            .toString()
+            .replace(/#([^#]+)#/g, (match, key) => options[key] || match)
+            .replace(/@\/?headerOne/g, (match) =>
+                match === '@headerOne' ? '<h1>' : '</h1>',
+            );
+
+        return callback(null, rendered);
+    });
+});
+
+// we use a `%` placeholder in our sample markdown.
+express.engine('md', (filePath, options, callback) => {
+    fs.readFile(filePath, (error, content) => {
+        if (error) return callback(error);
+        let rendered = content
+            .toString()
+            .replace(/%([^%]+)%/g, (match, key) => options[key] || match);
+
+        const converter = new showdown.Converter();
+        converter.setOption('noHeaderId', true);
+        rendered = converter.makeHtml(rendered);
+
+        return callback(null, rendered);
+    });
+});
 
 // inject for later usage
 express.inject(repositoryOne, 'one');
@@ -105,6 +164,22 @@ headersRouter.get('/:uuid', (request, response) => {
 
 headersRouter.get('/clear', (_, response) => response.send('cleared'));
 express.use('/headers', headersRouter);
+
+express.get('/engines/:extension', (request, response) => {
+    const fileName = `sample.${request.params.extension}`;
+    response.render(fileName, { title: 'AppExpress' });
+});
+
+express.get('/engines/hbs/article', (request, response) => {
+    const { extension } = request.query;
+    response.render(`article.${extension}`, {
+        title: 'AppExpress',
+        subtitle: 'Routing for Appwrite Functions!',
+        content:
+            'An express.js like framework for Appwrite Functions, enabling super-easy navigation!',
+        author: '@ItzNotABug',
+    });
+});
 
 // Appwrite Function Entrypoint!
 export default async (context) => await express.attach(context);

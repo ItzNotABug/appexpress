@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import assert from 'node:assert';
 import { describe, it } from 'node:test';
 
-import index from './entrypoint/index.js';
+import index from './src/function/index.js';
 import { createContext } from './utils/context.js';
 
 describe('Direct requests to all supported methods', () => {
@@ -83,7 +83,7 @@ describe('Response for non-existing endpoints', () => {
 
 describe('Internal server error handling', () => {
     it('should return a 500 status code for invalid returns', async () => {
-        const context = createContext({ path: '/get', method: 'get' });
+        const context = createContext({ path: '/get' });
         const { statusCode } = await index(context);
         assert.strictEqual(statusCode, 500);
     });
@@ -197,5 +197,63 @@ describe('Injected dependency validation', () => {
                 `No instance found for 'LoremIpsumRepository'.`,
             );
         }
+    });
+});
+
+describe('render template contents', () => {
+    const expectedReturn = `<h1>Welcome to AppExpress</h1>`;
+
+    it('should return rendered content from EJS template', async () => {
+        const context = createContext({ path: '/engines/ejs' });
+        const { body } = await index(context);
+        assert.strictEqual(body, expectedReturn);
+    });
+
+    it('should return rendered content from HBS template', async () => {
+        const context = createContext({ path: '/engines/hbs' });
+        const { body } = await index(context);
+        assert.strictEqual(body, expectedReturn);
+    });
+
+    it('should return rendered content from PUG template', async () => {
+        const context = createContext({ path: '/engines/pug' });
+        const { body } = await index(context);
+        assert.strictEqual(body, expectedReturn);
+    });
+
+    it('should return rendered content from a custom defined (apw) template', async () => {
+        const context = createContext({ path: '/engines/apw' });
+        const { body } = await index(context);
+        assert.strictEqual(body, expectedReturn);
+    });
+
+    it('should return rendered content from a custom defined Markdown template', async () => {
+        const context = createContext({ path: '/engines/md' });
+        const { body } = await index(context);
+        assert.strictEqual(body, expectedReturn);
+    });
+});
+
+describe('render partials contents on hbs engine', () => {
+    const expected = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>AppExpress</title></head><body><h1>AppExpress</h1><article><header><h3>Routing for Appwrite Functions!</h3></header><section>An express.js like framework for Appwrite Functions, enabling super-easy navigation!</section><footer><p>Written by: @ItzNotABug</p></footer></article></body></html>`;
+
+    it('should render an article using the HBS extension and include content from a partial', async () => {
+        const context = createContext({
+            path: '/engines/hbs/article',
+            query: { extension: 'hbs' },
+        });
+        const { body } = await index(context);
+        const cleanBody = body.replace(/\n/g, '').replace(/ {2,}/g, '');
+        assert.strictEqual(cleanBody, expected);
+    });
+
+    it('should render an article using the HTML extension and include content from a partial', async () => {
+        const context = createContext({
+            path: '/engines/hbs/article',
+            query: { extension: 'html' },
+        });
+        const { body } = await index(context);
+        const cleanBody = body.replace(/\n/g, '').replace(/ {2,}/g, '');
+        assert.strictEqual(cleanBody, expected);
     });
 });

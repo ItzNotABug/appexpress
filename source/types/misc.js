@@ -34,6 +34,11 @@
  */
 
 /**
+ * @typedef {Map<string, engine: any>} ViewEngineHandler
+ * @description Stores a file extension and an engine's function call to render content.
+ */
+
+/**
  * Creates and returns a new set of request method maps.
  *
  * @returns {RequestMethods} A new instance of request method maps for routing.

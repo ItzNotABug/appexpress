@@ -1,3 +1,7 @@
 *.json
 README.md
 **/*.yaml
+
+# ignore test views.
+# prettier anyway has issues with handlebar partials.
+tests/src/function/views
