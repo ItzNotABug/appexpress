@@ -1,3 +1,5 @@
+// noinspection JSUnusedGlobalSymbols
+
 /**
  * Represents the incoming http request.
  */
@@ -10,6 +12,15 @@ class AppExpressRequest {
     constructor(context) {
         this._context = context;
         this._request = context.req;
+
+        /**
+         * evaluate request path replacement logic here in the constructor
+         * as `path` can be called multiple times during a function's lifecycle.
+         */
+        this._requestPath =
+            this._request.path === '/'
+                ? this._request.path
+                : this._request.path.replace(/\/+$/, '');
     }
 
     /**
@@ -99,7 +110,7 @@ class AppExpressRequest {
      * @returns {string} The URL path.
      */
     get path() {
-        return this._request.path;
+        return this._requestPath;
     }
 
     /**
