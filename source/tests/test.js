@@ -51,14 +51,18 @@ describe('Responses from router-handled endpoints', () => {
     });
 
     it('should return a structured response for POST /router/:user/:transaction', async () => {
-        const user = 'cad7eee9bb524d6dac9b73b6e9f2c8c6';
-        const transaction = '0835fbe57f3540b3badd10fc31466fd9';
+        const details = {
+            user: 'cad7eee9bb524d6dac9b73b6e9f2c8c6',
+            transaction: '0835fbe57f3540b3badd10fc31466fd9',
+        };
+
         const context = createContext({
             method: 'post',
-            path: `/router/${user}/${transaction}`,
+            path: `/router/${details.user}/${details.transaction}`,
         });
+
         const response = await index(context);
-        assert.deepStrictEqual(response, { user, transaction });
+        assert.deepStrictEqual(response, details);
     });
 });
 
@@ -177,15 +181,16 @@ describe('Custom headers validation', () => {
 
 describe('Injected dependency validation', () => {
     it('should return lorem ipsum text', async () => {
+        const expected =
+            'Lorem Ipsum is simply dummy text of the printing and typesetting industry.';
         const context = createContext({ path: '/lorem_ipsum', method: 'get' });
         const { body } = await index(context);
-        assert.strictEqual(
-            body,
-            'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-        );
+
+        assert.strictEqual(body, expected);
     });
 
     it('should throw an error when dependencies is not found', async () => {
+        const expected = `No instance found for 'LoremIpsumRepository'.`;
         const context = createContext({
             path: '/lorem_ipsum/error',
             method: 'get',
@@ -193,45 +198,42 @@ describe('Injected dependency validation', () => {
         try {
             await index(context);
         } catch (error) {
-            assert.strictEqual(
-                error.message,
-                `No instance found for 'LoremIpsumRepository'.`,
-            );
+            assert.strictEqual(error.message, expected);
         }
     });
 });
 
 describe('Render template contents', () => {
-    const expectedReturn = `<h1>Welcome to AppExpress</h1>`;
+    const expected = `<h1>Welcome to AppExpress</h1>`;
 
     it('should return rendered content from EJS template', async () => {
         const context = createContext({ path: '/engines/ejs' });
         const { body } = await index(context);
-        assert.strictEqual(body, expectedReturn);
+        assert.strictEqual(body, expected);
     });
 
     it('should return rendered content from HBS template', async () => {
         const context = createContext({ path: '/engines/hbs' });
         const { body } = await index(context);
-        assert.strictEqual(body, expectedReturn);
+        assert.strictEqual(body, expected);
     });
 
     it('should return rendered content from PUG template', async () => {
         const context = createContext({ path: '/engines/pug' });
         const { body } = await index(context);
-        assert.strictEqual(body, expectedReturn);
+        assert.strictEqual(body, expected);
     });
 
     it('should return rendered content from a custom defined (apw) template', async () => {
         const context = createContext({ path: '/engines/apw' });
         const { body } = await index(context);
-        assert.strictEqual(body, expectedReturn);
+        assert.strictEqual(body, expected);
     });
 
     it('should return rendered content from a custom defined Markdown template', async () => {
         const context = createContext({ path: '/engines/md' });
         const { body } = await index(context);
-        assert.strictEqual(body, expectedReturn);
+        assert.strictEqual(body, expected);
     });
 });
 
@@ -260,21 +262,24 @@ describe('Render partials contents on hbs engine', () => {
 });
 
 describe('Public static resource handling', () => {
+    const publicDir = './src/function/public';
+
     it('should return the contents of ads.txt', async () => {
+        const adsTxt = `${publicDir}/ads.txt`;
+        const adsTxtContent = fs.readFileSync(adsTxt, 'utf8');
+
         const context = createContext({ path: '/ads.txt' });
         const { body } = await index(context);
-        assert.strictEqual(
-            body,
-            'xyz.com af7df8e1-6586-4fc3-93be-26c07abf4a5d\n' +
-                'abc.com 700bbcaa-c4e2-4d50-8fb9-2946efbe987b\n' +
-                'pqr.com 178d1cb5-00b0-4fbe-95e6-be7df8409e72',
-        );
+        assert.strictEqual(body, adsTxtContent);
     });
 
     it('should return the contents of robots.txt', async () => {
+        const robotsTxt = `${publicDir}/robots.txt`;
+        const robotsTxtContent = fs.readFileSync(robotsTxt, 'utf8');
+
         const context = createContext({ path: '/robots.txt' });
         const { body } = await index(context);
-        assert.strictEqual(body, 'User-agent: *\nDisallow: /');
+        assert.strictEqual(body, robotsTxtContent);
     });
 
     it('should return Cannot GET /.env', async () => {
@@ -284,15 +289,18 @@ describe('Public static resource handling', () => {
     });
 
     it('should return contents from a nested directory', async () => {
+        const acmeTxt = `${publicDir}/.well-known/acme-challenge/dc64a9a5f9ca432ba8c6f2fe8e5c35be`;
+        const acmeTxtContent = fs.readFileSync(acmeTxt, 'utf8');
+
         const context = createContext({
             path: '/.well-known/acme-challenge/dc64a9a5f9ca432ba8c6f2fe8e5c35be',
         });
         const { body } = await index(context);
-        assert.strictEqual(body, 'dc64a9a5f9ca432ba8c6f2fe8e5c35be');
+        assert.strictEqual(body, acmeTxtContent);
     });
 
     it('should return contents from a css file in a nested directory', async () => {
-        const css = './src/function/public/static/css/styles.css';
+        const css = `${publicDir}/static/css/styles.css`;
         const cssContent = fs.readFileSync(css, 'utf8');
 
         const context = createContext({
@@ -303,8 +311,8 @@ describe('Public static resource handling', () => {
     });
 
     it('should return contents from a js file in a nested directory', async () => {
-        const js = './src/function/public/static/js/window.js';
-        const jsContent = fs.readFileSync(js); // not served as text/*
+        const js = `${publicDir}/static/js/window.js`;
+        const jsContent = fs.readFileSync(js); // not served as `text/*`
 
         const context = createContext({
             path: '/static/js/window.js',
