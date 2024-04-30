@@ -171,8 +171,9 @@ express.get('/engines/:extension', (request, response) => {
     response.render(fileName, { title: 'AppExpress' });
 });
 
-express.get('/engines/hbs/article', (request, response) => {
+express.get('/engines/article', (request, response) => {
     const { extension } = request.query;
+
     response.render(`article.${extension}`, {
         title: 'AppExpress',
         subtitle: 'Routing for Appwrite Functions!',

@@ -17,11 +17,13 @@ describe('Direct requests to all supported methods', () => {
 });
 
 describe('Uniform response on `all` endpoint across methods', () => {
+    const expected = 'same on all';
+
     ['get', 'post', 'put', 'patch', 'delete', 'options'].forEach((method) => {
         it(`should receive 'same on all' response using ${method} method`, async () => {
             const context = createContext({ path: '/all', method: method });
             const { body } = await index(context);
-            assert.strictEqual(body, 'same on all');
+            assert.strictEqual(body, expected);
         });
     });
 });
@@ -46,6 +48,7 @@ describe('Responses from router-handled endpoints', () => {
             method: 'post',
             path: `/router/${user}`,
         });
+
         const { body } = await index(context);
         assert.strictEqual(body, user);
     });
@@ -68,20 +71,24 @@ describe('Responses from router-handled endpoints', () => {
 
 describe('Handling invalid method requests to specific endpoints', () => {
     ['post', 'put', 'patch', 'delete', 'options'].forEach((method) => {
+        const expected = `Cannot ${method.toUpperCase()} '/get'.`;
+
         it(`should return an error when using ${method.toUpperCase()} on '/get' endpoint`, async () => {
             const context = createContext({ path: '/get', method: method });
             const { body } = await index(context);
-            assert.strictEqual(body, `Cannot ${method.toUpperCase()} '/get'.`);
+            assert.strictEqual(body, expected);
         });
     });
 });
 
 describe('Response for non-existing endpoints', () => {
     ['get', 'post', 'put', 'patch', 'delete', 'options'].forEach((method) => {
+        const expected = `Cannot ${method.toUpperCase()} '/void'.`;
+
         it(`should return an error for ${method.toUpperCase()} request to '/void'`, async () => {
             const context = createContext({ path: '/void', method: method });
             const { body } = await index(context);
-            assert.strictEqual(body, `Cannot ${method.toUpperCase()} '/void'.`);
+            assert.strictEqual(body, expected);
         });
     });
 });
@@ -97,7 +104,9 @@ describe('Internal server error handling', () => {
 describe('Middleware handling', () => {
     it('should throw an error when no JWT Token is found', async () => {
         let message;
-        const context = createContext({ path: '/console', method: 'get' });
+        const expected = 'No JWT Token found, aborting the requests.';
+        const context = createContext({ path: '/console' });
+
         try {
             const { body } = await index(context);
             message = body;
@@ -105,41 +114,43 @@ describe('Middleware handling', () => {
             message = error.message;
         }
 
-        assert.strictEqual(
-            message,
-            'No JWT Token found, aborting the requests.',
-        );
+        assert.strictEqual(message, expected);
     });
 
     it("should return 'console' in the response body when a JWT Token is provided", async () => {
+        const expected = 'console';
         const context = createContext({
             path: '/console',
-            method: 'get',
             body: {
                 userJwtToken:
                     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c',
             },
         });
+
         const { body } = await index(context);
-        assert.strictEqual(body, 'console');
+        assert.strictEqual(body, expected);
     });
 
     it('should return a message from the middleware', async () => {
+        const expected = {
+            statusCode: 404,
+            body: `we don't really have a favicon yet, sorry`,
+        };
+
         const context = createContext({
             path: '/assets/favicon',
         });
 
         const { body, statusCode } = await index(context);
-        assert.deepStrictEqual(
-            { body, statusCode },
-            {
-                body: `we don't really have a favicon yet, sorry`,
-                statusCode: 404,
-            },
-        );
+        assert.deepStrictEqual({ body, statusCode }, expected);
     });
 
     it('should return a message from the middleware', async () => {
+        const expected = {
+            statusCode: 404,
+            body: `we don't really have a dark favicon yet, sorry`,
+        };
+
         const context = createContext({
             path: '/assets/favicon',
             query: {
@@ -148,13 +159,7 @@ describe('Middleware handling', () => {
         });
 
         const { body, statusCode } = await index(context);
-        assert.deepStrictEqual(
-            { body, statusCode },
-            {
-                body: `we don't really have a dark favicon yet, sorry`,
-                statusCode: 404,
-            },
-        );
+        assert.deepStrictEqual({ body, statusCode }, expected);
     });
 });
 
@@ -163,23 +168,21 @@ describe('Custom headers validation', () => {
         const randomHeaderValue = crypto.randomUUID().replace(/-/g, '');
         const context = createContext({
             path: `/headers/${randomHeaderValue}`,
-            method: 'get',
         });
+
         const { headers } = await index(context);
         assert.strictEqual(headers['custom-header'], randomHeaderValue);
     });
 
     it('should only return the default header', async () => {
+        const expected = { length: 1, type: 'text/plain' };
         const context = createContext({
             path: `/headers/clear`,
-            method: 'get',
         });
 
         const { headers } = await index(context);
-        // only the `content-type` should be available at this point.
-        assert.strictEqual(Object.keys(headers).length, 1);
-
-        assert.strictEqual(headers['content-type'], 'text/plain');
+        assert.strictEqual(headers['content-type'], expected.type);
+        assert.strictEqual(Object.keys(headers).length, expected.length);
     });
 });
 
@@ -187,18 +190,19 @@ describe('Injected dependency validation', () => {
     it('should return lorem ipsum text', async () => {
         const expected =
             'Lorem Ipsum is simply dummy text of the printing and typesetting industry.';
-        const context = createContext({ path: '/lorem_ipsum', method: 'get' });
-        const { body } = await index(context);
 
+        const context = createContext({ path: '/lorem_ipsum' });
+        const { body } = await index(context);
         assert.strictEqual(body, expected);
     });
 
     it('should throw an error when dependencies is not found', async () => {
         let message;
+        const expected = `No instance found for 'LoremIpsumRepository'.`;
         const context = createContext({
             path: '/lorem_ipsum/error',
-            method: 'get',
         });
+
         try {
             const { body } = await index(context);
             message = body;
@@ -206,68 +210,42 @@ describe('Injected dependency validation', () => {
             message = error.message;
         }
 
-        assert.strictEqual(
-            message,
-            `No instance found for 'LoremIpsumRepository'.`,
-        );
+        assert.strictEqual(message, expected);
     });
 });
 
 describe('Render template contents', () => {
     const expected = `<h1>Welcome to AppExpress</h1>`;
 
-    it('should return rendered content from EJS template', async () => {
-        const context = createContext({ path: '/engines/ejs' });
-        const { body } = await index(context);
-        assert.strictEqual(body, expected);
-    });
-
-    it('should return rendered content from HBS template', async () => {
-        const context = createContext({ path: '/engines/hbs' });
-        const { body } = await index(context);
-        assert.strictEqual(body, expected);
-    });
-
-    it('should return rendered content from PUG template', async () => {
-        const context = createContext({ path: '/engines/pug' });
-        const { body } = await index(context);
-        assert.strictEqual(body, expected);
-    });
-
-    it('should return rendered content from a custom defined (apw) template', async () => {
-        const context = createContext({ path: '/engines/apw' });
-        const { body } = await index(context);
-        assert.strictEqual(body, expected);
-    });
-
-    it('should return rendered content from a custom defined Markdown template', async () => {
-        const context = createContext({ path: '/engines/md' });
-        const { body } = await index(context);
-        assert.strictEqual(body, expected);
+    ['ejs', 'hbs', 'pug', 'apw', 'md'].forEach((template) => {
+        it(`should return rendered content from ${template.toUpperCase()} template`, async () => {
+            const context = createContext({ path: `/engines/${template}` });
+            const { body } = await index(context);
+            assert.strictEqual(body, expected);
+        });
     });
 });
 
-describe('Render partials contents on hbs engine', () => {
+describe('Render partials contents supported engines', () => {
     const expected = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>AppExpress</title></head><body><h1>AppExpress</h1><article><header><h3>Routing for Appwrite Functions!</h3></header><section>An express.js like framework for Appwrite Functions, enabling super-easy navigation!</section><footer><p>Written by: @ItzNotABug</p></footer></article></body></html>`;
 
-    it('should render an article using the HBS extension and include content from a partial', async () => {
-        const context = createContext({
-            path: '/engines/hbs/article',
-            query: { extension: 'hbs' },
-        });
-        const { body } = await index(context);
-        const cleanBody = body.replace(/\n/g, '').replace(/ {2,}/g, '');
-        assert.strictEqual(cleanBody, expected);
-    });
+    [{ HBS: ['hbs', 'html'] }, { EJS: ['ejs'] }].forEach((engine) => {
+        Object.entries(engine).forEach(([engineName, extensions]) => {
+            extensions.forEach((extension) => {
+                it(`should render an article using ${engineName.toUpperCase()} engine & ${extension.toUpperCase()} extension`, async () => {
+                    const context = createContext({
+                        path: '/engines/article',
+                        query: { extension: extension },
+                    });
 
-    it('should render an article using the HTML extension and include content from a partial', async () => {
-        const context = createContext({
-            path: '/engines/hbs/article',
-            query: { extension: 'html' },
+                    const { body } = await index(context);
+                    const cleanBody = body
+                        .replace(/\n/g, '')
+                        .replace(/ {2,}/g, '');
+                    assert.strictEqual(cleanBody, expected);
+                });
+            });
         });
-        const { body } = await index(context);
-        const cleanBody = body.replace(/\n/g, '').replace(/ {2,}/g, '');
-        assert.strictEqual(cleanBody, expected);
     });
 });
 
@@ -335,6 +313,8 @@ describe('Public static resource handling', () => {
 describe('Multiple returns error validation', () => {
     it(`should return an error due to multiple response.* call on a route`, async () => {
         let message;
+        const expected =
+            'A response has already been prepared. Cannot initiate another response. Did you call response methods like `response.send` or `response.json` multiple times in the same request handler?';
         const context = createContext({ path: '/error/multi-return' });
 
         try {
@@ -344,9 +324,6 @@ describe('Multiple returns error validation', () => {
             message = error.message;
         }
 
-        assert.strictEqual(
-            message,
-            'A response has already been prepared. Cannot initiate another response. Did you call response methods like `response.send` or `response.json` multiple times in the same request handler?',
-        );
+        assert.strictEqual(message, expected);
     });
 });
