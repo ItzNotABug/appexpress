@@ -1,3 +1,4 @@
+import fs from 'fs';
 import crypto from 'node:crypto';
 import assert from 'node:assert';
 import { describe, it } from 'node:test';
@@ -50,14 +51,18 @@ describe('Responses from router-handled endpoints', () => {
     });
 
     it('should return a structured response for POST /router/:user/:transaction', async () => {
-        const user = 'cad7eee9bb524d6dac9b73b6e9f2c8c6';
-        const transaction = '0835fbe57f3540b3badd10fc31466fd9';
+        const details = {
+            user: 'cad7eee9bb524d6dac9b73b6e9f2c8c6',
+            transaction: '0835fbe57f3540b3badd10fc31466fd9',
+        };
+
         const context = createContext({
             method: 'post',
-            path: `/router/${user}/${transaction}`,
+            path: `/router/${details.user}/${details.transaction}`,
         });
+
         const response = await index(context);
-        assert.deepStrictEqual(response, { user, transaction });
+        assert.deepStrictEqual(response, details);
     });
 });
 
@@ -176,15 +181,16 @@ describe('Custom headers validation', () => {
 
 describe('Injected dependency validation', () => {
     it('should return lorem ipsum text', async () => {
+        const expected =
+            'Lorem Ipsum is simply dummy text of the printing and typesetting industry.';
         const context = createContext({ path: '/lorem_ipsum', method: 'get' });
         const { body } = await index(context);
-        assert.strictEqual(
-            body,
-            'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-        );
+
+        assert.strictEqual(body, expected);
     });
 
     it('should throw an error when dependencies is not found', async () => {
+        const expected = `No instance found for 'LoremIpsumRepository'.`;
         const context = createContext({
             path: '/lorem_ipsum/error',
             method: 'get',
@@ -192,49 +198,46 @@ describe('Injected dependency validation', () => {
         try {
             await index(context);
         } catch (error) {
-            assert.strictEqual(
-                error.message,
-                `No instance found for 'LoremIpsumRepository'.`,
-            );
+            assert.strictEqual(error.message, expected);
         }
     });
 });
 
-describe('render template contents', () => {
-    const expectedReturn = `<h1>Welcome to AppExpress</h1>`;
+describe('Render template contents', () => {
+    const expected = `<h1>Welcome to AppExpress</h1>`;
 
     it('should return rendered content from EJS template', async () => {
         const context = createContext({ path: '/engines/ejs' });
         const { body } = await index(context);
-        assert.strictEqual(body, expectedReturn);
+        assert.strictEqual(body, expected);
     });
 
     it('should return rendered content from HBS template', async () => {
         const context = createContext({ path: '/engines/hbs' });
         const { body } = await index(context);
-        assert.strictEqual(body, expectedReturn);
+        assert.strictEqual(body, expected);
     });
 
     it('should return rendered content from PUG template', async () => {
         const context = createContext({ path: '/engines/pug' });
         const { body } = await index(context);
-        assert.strictEqual(body, expectedReturn);
+        assert.strictEqual(body, expected);
     });
 
     it('should return rendered content from a custom defined (apw) template', async () => {
         const context = createContext({ path: '/engines/apw' });
         const { body } = await index(context);
-        assert.strictEqual(body, expectedReturn);
+        assert.strictEqual(body, expected);
     });
 
     it('should return rendered content from a custom defined Markdown template', async () => {
         const context = createContext({ path: '/engines/md' });
         const { body } = await index(context);
-        assert.strictEqual(body, expectedReturn);
+        assert.strictEqual(body, expected);
     });
 });
 
-describe('render partials contents on hbs engine', () => {
+describe('Render partials contents on hbs engine', () => {
     const expected = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>AppExpress</title></head><body><h1>AppExpress</h1><article><header><h3>Routing for Appwrite Functions!</h3></header><section>An express.js like framework for Appwrite Functions, enabling super-easy navigation!</section><footer><p>Written by: @ItzNotABug</p></footer></article></body></html>`;
 
     it('should render an article using the HBS extension and include content from a partial', async () => {
@@ -255,5 +258,66 @@ describe('render partials contents on hbs engine', () => {
         const { body } = await index(context);
         const cleanBody = body.replace(/\n/g, '').replace(/ {2,}/g, '');
         assert.strictEqual(cleanBody, expected);
+    });
+});
+
+describe('Public static resource handling', () => {
+    const publicDir = './src/function/public';
+
+    it('should return the contents of ads.txt', async () => {
+        const adsTxt = `${publicDir}/ads.txt`;
+        const adsTxtContent = fs.readFileSync(adsTxt, 'utf8');
+
+        const context = createContext({ path: '/ads.txt' });
+        const { body } = await index(context);
+        assert.strictEqual(body, adsTxtContent);
+    });
+
+    it('should return the contents of robots.txt', async () => {
+        const robotsTxt = `${publicDir}/robots.txt`;
+        const robotsTxtContent = fs.readFileSync(robotsTxt, 'utf8');
+
+        const context = createContext({ path: '/robots.txt' });
+        const { body } = await index(context);
+        assert.strictEqual(body, robotsTxtContent);
+    });
+
+    it('should return Cannot GET /.env', async () => {
+        const context = createContext({ path: '/.env' });
+        const { body } = await index(context);
+        assert.strictEqual(body, `Cannot GET '/.env'.`);
+    });
+
+    it('should return contents from a nested directory', async () => {
+        const acmeTxt = `${publicDir}/.well-known/acme-challenge/dc64a9a5f9ca432ba8c6f2fe8e5c35be`;
+        const acmeTxtContent = fs.readFileSync(acmeTxt, 'utf8');
+
+        const context = createContext({
+            path: '/.well-known/acme-challenge/dc64a9a5f9ca432ba8c6f2fe8e5c35be',
+        });
+        const { body } = await index(context);
+        assert.strictEqual(body, acmeTxtContent);
+    });
+
+    it('should return contents from a css file in a nested directory', async () => {
+        const css = `${publicDir}/static/css/styles.css`;
+        const cssContent = fs.readFileSync(css, 'utf8');
+
+        const context = createContext({
+            path: '/static/css/styles.css',
+        });
+        const { body } = await index(context);
+        assert.strictEqual(body, cssContent);
+    });
+
+    it('should return contents from a js file in a nested directory', async () => {
+        const js = `${publicDir}/static/js/window.js`;
+        const jsContent = fs.readFileSync(js); // not served as `text/*`
+
+        const context = createContext({
+            path: '/static/js/window.js',
+        });
+        const { body } = await index(context);
+        assert.deepStrictEqual(body, jsContent);
     });
 });
