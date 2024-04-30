@@ -226,7 +226,7 @@ describe('Render template contents', () => {
     });
 });
 
-describe('Render partials contents supported engines', () => {
+describe('Render partials contents on supported engines', () => {
     const expected = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>AppExpress</title></head><body><h1>AppExpress</h1><article><header><h3>Routing for Appwrite Functions!</h3></header><section>An express.js like framework for Appwrite Functions, enabling super-easy navigation!</section><footer><p>Written by: @ItzNotABug</p></footer></article></body></html>`;
 
     [
