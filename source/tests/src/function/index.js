@@ -181,5 +181,11 @@ express.get('/engines/hbs/article', (request, response) => {
     });
 });
 
+// multiple returns are not allowed.
+express.get('/error/multi-return', (_, response) => {
+    response.send('ok');
+    response.send('ok');
+});
+
 // Appwrite Function Entrypoint!
 export default async (context) => await express.attach(context);
