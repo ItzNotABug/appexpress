@@ -25,7 +25,8 @@ const router = new AppExpress.Router();
 const repositoryOne = new LoremIpsumRepository();
 const repositoryTwo = new LoremIpsumRepository();
 
-express.views('views'); // set directory.
+express.views('views');
+express.static('public', [/^\..*env.*/i]);
 
 express.engine('ejs', ejs); // ejs
 express.engine('pug', pug); // pub
