@@ -353,15 +353,15 @@ class AppExpress {
     }
 
     /**
-     * Specify a path where your publicly accessible files are located.\
+     * Specify a path where your static files are located for public access.\
      * Requests made to these files are handled via a `middleware` and are directly served.
      *
      * To use multiple static assets directories, you can call this function multiple times :
      * ```javascript
-     * appExpress.public('public');
+     * appExpress.static('public');
      *
      *  // exclude some files via name or RegExp.
-     * appExpress.public('files', ['.env', /config/g]);
+     * appExpress.static('files', ['.env', /config/g]);
      * ```
      *
      * **Note**: The default encoding is `text/plain` if no or unknown extension is found for a file.
@@ -369,7 +369,7 @@ class AppExpress {
      * @param {string} directory='' - The directory path containing the public files.
      * @param {(string|RegExp)[]} [exclude=[]] - The directory path containing the public files.
      */
-    public(directory = '', exclude = []) {
+    static(directory = '', exclude = []) {
         if (directory) {
             const defType = 'text/plain';
             const filesMapping = this.#processDirectory(directory, exclude);

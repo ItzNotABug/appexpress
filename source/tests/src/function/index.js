@@ -26,7 +26,7 @@ const repositoryOne = new LoremIpsumRepository();
 const repositoryTwo = new LoremIpsumRepository();
 
 express.views('views');
-express.public('public', [/^\..*env.*/i]);
+express.static('public', [/^\..*env.*/i]);
 
 express.engine('ejs', ejs); // ejs
 express.engine('pug', pug); // pub
