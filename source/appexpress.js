@@ -344,9 +344,9 @@ class AppExpress {
     }
 
     /**
-     * Specify a path where your static html files are stored for rendering using `response.htmlFromFile()`.
+     * Specify a path where your views are stored for rendering.
      *
-     * @param {string} directory='' - The directory path containing the html files.
+     * @param {string} directory='' - The directory path containing the views.
      */
     views(directory = '') {
         this._views = directory;
@@ -383,8 +383,9 @@ class AppExpress {
                     if (
                         contentType.startsWith('text/') ||
                         contentType === 'application/json'
-                    )
+                    ) {
                         options.encoding = 'utf8';
+                    }
 
                     const fileContent = fs.readFileSync(requestedFile, options);
                     response.send(fileContent, 200, contentType);
@@ -398,7 +399,7 @@ class AppExpress {
      *
      * @param {string} directory - The directory to read.
      * @param {(string|RegExp)[]} exclude - Name or regex pattern to exclude files,
-     * @returns {{}}
+     * @returns {{}} An object containing file names as keys and their relative path as values for reads.
      */
     #processDirectory(directory, exclude) {
         let filesMapping = {};
