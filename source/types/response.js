@@ -55,16 +55,19 @@ class AppExpressResponse {
      * typically used when there's no need to send back any data to the source.
      */
     empty() {
-        return this.#wrapReturnForSafety(this._response.empty());
+        this.#wrapReturnForSource(this._response.empty());
     }
 
     /**
      * Send a JSON response back to the source.
      *
      * @param {Object} data - The JSON data to send.
+     * @param {number} statusCode=200 - The HTTP status code.
      */
-    json(data) {
-        return this.#wrapReturnForSafety(this._response.json(data));
+    json(data, statusCode = 200) {
+        this.#wrapReturnForSource(
+            this._response.json(data, statusCode, this._customHeaders),
+        );
     }
 
     /**
@@ -73,7 +76,9 @@ class AppExpressResponse {
      * @param {string} url - The URL to redirect to.
      */
     redirect(url) {
-        return this.#wrapReturnForSafety(this._response.redirect(url));
+        this.#wrapReturnForSource(
+            this._response.redirect(url, 301, this._customHeaders),
+        );
     }
 
     /**
@@ -84,7 +89,7 @@ class AppExpressResponse {
      * @param {string} contentType='text/plain' - The content type of the response.
      */
     send(content, statusCode = 200, contentType = 'text/plain') {
-        return this.#wrapReturnForSafety(
+        this.#wrapReturnForSource(
             this._response.send(content, statusCode, {
                 'content-type': contentType,
                 ...this._customHeaders,
@@ -95,11 +100,14 @@ class AppExpressResponse {
     /**
      * Send an HTML response back to the source which is rendered for the user.
      *
-     * @param {string} stringHtml - The HTML string to send.
+     * @param {string} html - The HTML string to send.
      * @param {number} statusCode=200 - The HTTP status code.
+     *
+     * @deprecated - Use `send(content, statusCode, 'text/html')` instead.\
+     * This method will be removed in the upcoming versions.
      */
-    html(stringHtml, statusCode = 200) {
-        return this.send(stringHtml, statusCode, 'text/html');
+    html(html, statusCode = 200) {
+        this.send(html, statusCode, 'text/html');
     }
 
     /**
@@ -107,15 +115,14 @@ class AppExpressResponse {
      *
      * @param {string} filePath - The file path to read HTML from.
      * @param {number} statusCode=200 - The HTTP status code to send.
-     * @returns {*} - A promise that resolves when the file has been sent.
      */
-    htmlFromFile(filePath, statusCode = 200) {
+    sendFile(filePath, statusCode = 200) {
         try {
             const htmlContent = this.readFile(filePath, 'utf8');
-            return this.#wrapForPromise(htmlContent, statusCode);
+            this.#wrapForPromise(htmlContent, statusCode);
         } catch (error) {
             this._context.error(`Failed to read HTML file: ${error}`);
-            return this.send('Internal Server Error', 500, 'text/plain');
+            this.send('Internal Server Error', 500, 'text/plain');
         }
     }
 
@@ -126,7 +133,6 @@ class AppExpressResponse {
      * **Note: If you have set up multiple engines, use the file extension as well.**
      * @param {Object} options - The options for the rendering engine.
      * @param {number} statusCode=200 - The HTTP status code.
-     * @returns {*} A promise that resolves when the view engine rendered content has been sent.
      */
     render(filePath, options = {}, statusCode = 200) {
         const engines = this._response._engine ?? new Map();
@@ -164,10 +170,10 @@ class AppExpressResponse {
                 });
             });
 
-            return this.#wrapForPromise(promise, statusCode);
+            this.#wrapForPromise(promise, statusCode);
         } catch (error) {
             this._context.error(`Failed to render content: ${error}`);
-            return this.send('Internal Server Error', 500, 'text/plain');
+            this.send('Internal Server Error', 500, 'text/plain');
         }
     }
 
@@ -232,9 +238,8 @@ class AppExpressResponse {
     /**
      * Helper function that wraps and returns back a Promise to render view.
      *
-     * @param {Promise<*>} promise - Promise that contains the view rendering logic.
+     * @param {Promise<any>} promise - Promise that returns a html string on completion.
      * @param {number} statusCode=200 - The HTTP status code.
-     * @returns {data} The same data but safely wrapped in a dynamic variable.
      */
     #wrapForPromise(promise, statusCode) {
         const promiseDataType = this._response.send(promise, statusCode, {
@@ -242,23 +247,36 @@ class AppExpressResponse {
             ...this._customHeaders,
         });
 
-        return this.#wrapReturnForSafety(promiseDataType, true);
+        this.#wrapReturnForSource(promiseDataType, true);
     }
 
     /**
-     * Wrap the return value for safety.
-     *
-     * This is helpful if the developer ever forgets to use `return` in the `RequestHandler`.
+     * Wrap the return value for source.
      *
      * @param {any} data - The data to wrap for safety.
-     * @param {boolean} isPromise - Whether the provided data is a `Promise`.
-     * @returns {data} The same data but safely wrapped in a dynamic variable.
+     * @param {boolean} promise=false - Whether the provided data is a `Promise`.
      */
-    #wrapReturnForSafety(data, isPromise = false) {
-        this._response.promise = isPromise;
+    #wrapReturnForSource(data, promise = false) {
+        this.#checkIfAlreadyPrepared();
 
         this._response.dynamic = data;
-        return this._response.dynamic;
+        this._response.promise = promise;
+    }
+
+    /**
+     * Prevents multiple responses from being sent for a single request.
+     *
+     * @throws {Error} - Throws an error if there is an attempt to send a second response as it can lead to unexpected behavior.
+     */
+    #checkIfAlreadyPrepared() {
+        if (this._response.dynamic) {
+            const error = new Error(
+                'A response has already been prepared. Cannot initiate another response. ' +
+                    'Did you call response methods like `response.send` or `response.json` multiple times in the same request handler?',
+            );
+            error.stack = '';
+            throw error;
+        }
     }
 }
 

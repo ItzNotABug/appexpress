@@ -171,8 +171,9 @@ express.get('/engines/:extension', (request, response) => {
     response.render(fileName, { title: 'AppExpress' });
 });
 
-express.get('/engines/hbs/article', (request, response) => {
+express.get('/engines/article', (request, response) => {
     const { extension } = request.query;
+
     response.render(`article.${extension}`, {
         title: 'AppExpress',
         subtitle: 'Routing for Appwrite Functions!',
@@ -180,6 +181,12 @@ express.get('/engines/hbs/article', (request, response) => {
             'An express.js like framework for Appwrite Functions, enabling super-easy navigation!',
         author: '@ItzNotABug',
     });
+});
+
+// multiple returns are not allowed.
+express.get('/error/multi-return', (_, response) => {
+    response.send('ok');
+    response.send('ok');
 });
 
 // Appwrite Function Entrypoint!

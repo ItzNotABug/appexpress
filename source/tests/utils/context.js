@@ -26,14 +26,28 @@ export const createContext = ({
          * all methods except `empty()` support `statusCode` & `headers` but they are managed internally.
          */
         res: {
-            empty: () => '',
-            redirect: (url) => url,
-            json: (object) => object,
-            send: (body, statusCode, headers) => ({
-                body,
-                statusCode,
-                headers,
-            }),
+            send: function (body, statusCode = 200, headers = {}) {
+                return {
+                    body: body,
+                    statusCode: statusCode,
+                    headers: headers,
+                };
+            },
+            json: function (object, statusCode = 200, headers = {}) {
+                /**
+                 * `server.js` uses `JSON.stringify(object)`
+                 * along with application/json as content-type.
+                 *
+                 * We can't do that so just send the object as is.
+                 */
+                return this.send(object, statusCode, headers);
+            },
+            empty: function () {
+                return this.send('', 204, {});
+            },
+            redirect: function (url, statusCode = 301, headers = {}) {
+                return this.send(url, statusCode, headers);
+            },
         },
         log: (_) => '', // empty for the sake of testing
         error: (_) => '', // empty for the sake of testing
