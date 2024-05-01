@@ -264,23 +264,8 @@ class AppExpressResponse {
     #wrapReturnForSource(data, promise = false) {
         this.#checkIfAlreadyPrepared();
 
-        this.#addPoweredByHeader(data);
-
         this.#response.dynamic = data;
         this.#response.promise = promise;
-    }
-
-    /**
-     * Adds the "X-Powered-By" header.
-     */
-    #addPoweredByHeader(data) {
-        if (!data.headers) return;
-
-        const headerKey = 'X-Powered-By';
-        const dataHeaders = data.headers;
-        if (this.#response._showPoweredBy && !dataHeaders[headerKey]) {
-            dataHeaders[headerKey] = 'AppExpress';
-        }
     }
 
     /**

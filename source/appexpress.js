@@ -491,7 +491,6 @@ class AppExpress {
         // setup response handler.
         context.req._dependencies = this.#dependencies;
         context.res._baseDirectory = this.baseDirectory;
-        context.res._showPoweredBy = this.#showPoweredBy;
         if (this.#views) context.res._views = this.#views;
         if (this.#engine.size) context.res._engine = this.#engine;
 
@@ -644,6 +643,8 @@ class AppExpress {
             const response = this.#context.res;
             const result = response.dynamic;
 
+            this.#addPoweredByHeader(result);
+
             /**
              * So what is happening here?
              *
@@ -667,6 +668,18 @@ class AppExpress {
             return this.#sendErrorResult(
                 `Invalid return from route ${request.path}. Use 'response.empty()' if no response is expected.`,
             );
+        }
+    }
+
+    /**
+     * Adds the "X-Powered-By" header.
+     */
+    #addPoweredByHeader(dynamic) {
+        if (!dynamic.headers) return;
+
+        const headerKey = 'X-Powered-By';
+        if (this.#showPoweredBy && !dynamic.headers[headerKey]) {
+            dynamic.headers[headerKey] = 'AppExpress';
         }
     }
 
