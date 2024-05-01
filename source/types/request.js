@@ -4,23 +4,32 @@
  * Represents the incoming http request.
  */
 class AppExpressRequest {
+    /** @type AppwriteFunctionContext */
+    #context;
+
+    /** @type Object */
+    #request;
+
+    /** @type string */
+    #requestPath;
+
     /**
      * Initializes a new instance of the `AppExpressRequest` class.
      *
      * @param {AppwriteFunctionContext} context - The context provided by the executed `Appwrite Function`.
      */
     constructor(context) {
-        this._context = context;
-        this._request = context.req;
+        this.#context = context;
+        this.#request = context.req;
 
         /**
          * evaluate request path replacement logic here in the constructor
          * as `path` can be called multiple times during a function's lifecycle.
          */
-        this._requestPath =
-            this._request.path === '/'
-                ? this._request.path
-                : this._request.path.replace(/\/+$/, '');
+        this.#requestPath =
+            this.#request.path === '/'
+                ? this.#request.path
+                : this.#request.path.replace(/\/+$/, '');
     }
 
     /**
@@ -29,7 +38,7 @@ class AppExpressRequest {
      * @returns {string|undefined} The raw request body or undefined if not set.
      */
     get bodyRaw() {
-        return this._request.bodyRaw;
+        return this.#request.bodyRaw;
     }
 
     /**
@@ -38,16 +47,16 @@ class AppExpressRequest {
      * @returns {Object|{}} The request body or empty if not set.
      */
     get body() {
-        if (typeof this._request.body === 'string' && this._request.body) {
+        if (typeof this.#request.body === 'string' && this.#request.body) {
             try {
-                return JSON.parse(this._request.body);
+                return JSON.parse(this.#request.body);
             } catch (error) {
-                this._context.error(
+                this.#context.error(
                     `Failed to parse request body as JSON: ${error}`,
                 );
             }
         }
-        return this._request.body || {};
+        return this.#request.body || {};
     }
 
     /**
@@ -56,7 +65,7 @@ class AppExpressRequest {
      * @returns {Object<string, any>} The request headers.
      */
     get headers() {
-        return this._request.headers;
+        return this.#request.headers;
     }
 
     /**
@@ -65,7 +74,7 @@ class AppExpressRequest {
      * @returns {string} The scheme of the request.
      */
     get scheme() {
-        return this._request.scheme;
+        return this.#request.scheme;
     }
 
     /**
@@ -74,7 +83,7 @@ class AppExpressRequest {
      * @returns {string} The raw request body.
      */
     get method() {
-        return this._request.method.toLowerCase();
+        return this.#request.method.toLowerCase();
     }
 
     /**
@@ -83,7 +92,7 @@ class AppExpressRequest {
      * @returns {string} The full URL.
      */
     get url() {
-        return this._request.url;
+        return this.#request.url;
     }
 
     /**
@@ -92,7 +101,7 @@ class AppExpressRequest {
      * @returns {string} The URL host.
      */
     get host() {
-        return this._request.host;
+        return this.#request.host;
     }
 
     /**
@@ -101,7 +110,7 @@ class AppExpressRequest {
      * @returns {number} The URL port.
      */
     get port() {
-        return parseInt(this._request.port, 10);
+        return parseInt(this.#request.port, 10);
     }
 
     /**
@@ -110,7 +119,7 @@ class AppExpressRequest {
      * @returns {string} The URL path.
      */
     get path() {
-        return this._requestPath;
+        return this.#requestPath;
     }
 
     /**
@@ -119,7 +128,7 @@ class AppExpressRequest {
      * @returns {string} The query string.
      */
     get queryString() {
-        return this._request.queryString;
+        return this.#request.queryString;
     }
 
     /**
@@ -128,7 +137,7 @@ class AppExpressRequest {
      * @returns {Object<string, any>} The parsed params.
      */
     get params() {
-        return this._request.params ?? {};
+        return this.#request.params ?? {};
     }
 
     /**
@@ -137,16 +146,16 @@ class AppExpressRequest {
      * @returns {Object|{}} The parsed params or empty if not set.
      */
     get query() {
-        if (typeof this._request.query === 'string' && this._request.query) {
+        if (typeof this.#request.query === 'string' && this.#request.query) {
             try {
-                return JSON.parse(this._request.query);
+                return JSON.parse(this.#request.query);
             } catch (error) {
-                this._context.error(
+                this.#context.error(
                     `Failed to parse request query as JSON: ${error}`,
                 );
             }
         }
-        return this._request.query || {};
+        return this.#request.query || {};
     }
 
     /**
@@ -196,7 +205,7 @@ class AppExpressRequest {
         const objectName = type.name;
         const key = identifier ? `${objectName}:${identifier}` : objectName;
 
-        if (!this._request.dependencies.has(key)) {
+        if (!this.#request._dependencies.has(key)) {
             if (identifier) {
                 throw new Error(
                     `No instance found for '${objectName}' with identifier '${identifier}'.`,
@@ -206,7 +215,7 @@ class AppExpressRequest {
             }
         }
 
-        return this._request.dependencies.get(key).instance;
+        return this.#request._dependencies.get(key).instance;
     }
 
     /**
