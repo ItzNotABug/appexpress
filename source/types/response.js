@@ -7,17 +7,26 @@ import fs from 'fs/promises';
  * Represents the response object for returning, exiting the function.
  */
 class AppExpressResponse {
+    /** @type AppwriteFunctionContext */
+    #context;
+
+    /** @type Object */
+    #response;
+
+    /** @type {Object<string, string|number>} */
+    #customHeaders;
+
     /**
      * Initializes a new instance of the `AppExpressResponse` class.
      *
      * @param {AppwriteFunctionContext} context - The context provided by the executed `Appwrite Function`.
      */
     constructor(context) {
-        this._context = context;
-        this._response = context.res;
+        this.#context = context;
+        this.#response = context.res;
 
-        /** @type {Object<string, string|number>} */
-        this._customHeaders = {};
+        // custom headers.
+        this.#customHeaders = {};
     }
 
     /**
@@ -39,7 +48,7 @@ class AppExpressResponse {
                 );
             }
 
-            this._customHeaders[headerKey] = value;
+            this.#customHeaders[headerKey] = value;
         }
     }
 
@@ -47,7 +56,7 @@ class AppExpressResponse {
      * Clear all the headers added via `setHeaders`.
      */
     clearHeaders() {
-        this._customHeaders = {};
+        this.#customHeaders = {};
     }
 
     /**
@@ -55,7 +64,7 @@ class AppExpressResponse {
      * typically used when there's no need to send back any data to the source.
      */
     empty() {
-        this.#wrapReturnForSource(this._response.empty());
+        this.#wrapReturnForSource(this.#response.empty());
     }
 
     /**
@@ -66,7 +75,7 @@ class AppExpressResponse {
      */
     json(data, statusCode = 200) {
         this.#wrapReturnForSource(
-            this._response.json(data, statusCode, this._customHeaders),
+            this.#response.json(data, statusCode, this.#customHeaders),
         );
     }
 
@@ -77,7 +86,7 @@ class AppExpressResponse {
      */
     redirect(url) {
         this.#wrapReturnForSource(
-            this._response.redirect(url, 301, this._customHeaders),
+            this.#response.redirect(url, 301, this.#customHeaders),
         );
     }
 
@@ -90,9 +99,9 @@ class AppExpressResponse {
      */
     send(content, statusCode = 200, contentType = 'text/plain') {
         this.#wrapReturnForSource(
-            this._response.send(content, statusCode, {
+            this.#response.send(content, statusCode, {
                 'content-type': contentType,
-                ...this._customHeaders,
+                ...this.#customHeaders,
             }),
         );
     }
@@ -121,7 +130,7 @@ class AppExpressResponse {
             const htmlContent = this.readFile(filePath, 'utf8');
             this.#wrapForPromise(htmlContent, statusCode);
         } catch (error) {
-            this._context.error(`Failed to read HTML file: ${error}`);
+            this.#context.error(`Failed to read HTML file: ${error}`);
             this.send('Internal Server Error', 500, 'text/plain');
         }
     }
@@ -135,7 +144,7 @@ class AppExpressResponse {
      * @param {number} statusCode=200 - The HTTP status code.
      */
     render(filePath, options = {}, statusCode = 200) {
-        const engines = this._response._engine ?? new Map();
+        const engines = this.#response._engine ?? new Map();
 
         if (!engines.size) throw new Error('No view engine found.');
 
@@ -172,7 +181,7 @@ class AppExpressResponse {
 
             this.#wrapForPromise(promise, statusCode);
         } catch (error) {
-            this._context.error(`Failed to render content: ${error}`);
+            this.#context.error(`Failed to render content: ${error}`);
             this.send('Internal Server Error', 500, 'text/plain');
         }
     }
@@ -193,7 +202,7 @@ class AppExpressResponse {
         try {
             return await fs.readFile(usablePath, options);
         } catch (error) {
-            this._context.error(`Failed to read file: ${error}`);
+            this.#context.error(`Failed to read file: ${error}`);
             return null;
         }
     }
@@ -216,8 +225,8 @@ class AppExpressResponse {
      * @returns {string} The correct path for the given file.
      */
     #buildFilePath(fileName) {
-        return this._response._views
-            ? `${this._response._views}/${fileName}`
+        return this.#response._views
+            ? `${this.#response._views}/${fileName}`
             : `${fileName}`;
     }
 
@@ -230,7 +239,7 @@ class AppExpressResponse {
     #basePath(append = '') {
         return path.join(
             process.cwd(),
-            `${this._response._baseDirectory}`,
+            `${this.#response._baseDirectory}`,
             `${append}`,
         );
     }
@@ -242,9 +251,9 @@ class AppExpressResponse {
      * @param {number} statusCode=200 - The HTTP status code.
      */
     #wrapForPromise(promise, statusCode) {
-        const promiseDataType = this._response.send(promise, statusCode, {
+        const promiseDataType = this.#response.send(promise, statusCode, {
             'content-type': 'text/html',
-            ...this._customHeaders,
+            ...this.#customHeaders,
         });
 
         this.#wrapReturnForSource(promiseDataType, true);
@@ -259,8 +268,8 @@ class AppExpressResponse {
     #wrapReturnForSource(data, promise = false) {
         this.#checkIfAlreadyPrepared();
 
-        this._response.dynamic = data;
-        this._response.promise = promise;
+        this.#response.dynamic = data;
+        this.#response.promise = promise;
     }
 
     /**
@@ -269,7 +278,7 @@ class AppExpressResponse {
      * @throws {Error} - Throws an error if there is an attempt to send a second response as it can lead to unexpected behavior.
      */
     #checkIfAlreadyPrepared() {
-        if (this._response.dynamic) {
+        if (this.#response.dynamic) {
             const error = new Error(
                 'A response has already been prepared. Cannot initiate another response. ' +
                     'Did you call response methods like `response.send` or `response.json` multiple times in the same request handler?',
