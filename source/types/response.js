@@ -127,8 +127,8 @@ class AppExpressResponse {
      */
     sendFile(filePath, statusCode = 200) {
         try {
-            const htmlContent = this.readFile(filePath, 'utf8');
-            this.#wrapForPromise(htmlContent, statusCode);
+            const promise = this.#readFile(filePath);
+            this.#wrapForPromise(promise, statusCode);
         } catch (error) {
             this.#context.error(`Failed to read HTML file: ${error}`);
             this.send('Internal Server Error', 500, 'text/plain');
@@ -190,17 +190,13 @@ class AppExpressResponse {
      * Reads a file asynchronously and returns its contents as a Buffer.
      *
      * @param {string} path - The path to the file relative to a base path.
-     * @param {string|null} [encoding=null] - The encoding to use. If null, the function returns a Buffer.
-     * @returns {Promise<string|Buffer|null>} - A promise that resolves with the file contents as a Buffer or as a string or null if there was an error.
+     * @returns {Promise<string|null>} - A promise that resolves with the file contents as a string or null if there was an error.
      */
-    async readFile(path, encoding = null) {
-        const options = {};
-
+    async #readFile(path) {
         const usablePath = this.#usablePath(path);
-        if (encoding) options.encoding = encoding;
 
         try {
-            return await fs.readFile(usablePath, options);
+            return await fs.readFile(usablePath, 'utf8');
         } catch (error) {
             this.#context.error(`Failed to read file: ${error}`);
             return null;
