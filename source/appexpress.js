@@ -14,14 +14,12 @@ class AppExpress {
     /**
      * Represents a Router for handling HTTP requests.
      */
-    static Router = class {
-        constructor() {
-            /** @type boolean */
-            this._empty = true;
+    static Router = class Router {
+        /** @type boolean */
+        #empty = true;
 
-            /** @type RequestMethods */
-            this._internalRoutes = requestMethods();
-        }
+        /** @type RequestMethods */
+        #internalRoutes = requestMethods();
 
         /**
          * Registers a `GET` route.
@@ -30,8 +28,8 @@ class AppExpress {
          * @param {RequestHandler} handler - The handler to execute for the path.
          */
         get(path, handler) {
-            this._internalRoutes.get.set(path, handler);
-            if (this._empty) this._empty = false;
+            this.#internalRoutes.get.set(path, handler);
+            this.#toggleEmpty();
         }
 
         /**
@@ -41,8 +39,8 @@ class AppExpress {
          * @param {RequestHandler} handler - The handler to execute for the path.
          */
         post(path, handler) {
-            this._internalRoutes.post.set(path, handler);
-            if (this._empty) this._empty = false;
+            this.#internalRoutes.post.set(path, handler);
+            this.#toggleEmpty();
         }
 
         /**
@@ -52,8 +50,8 @@ class AppExpress {
          * @param {RequestHandler} handler - The handler to execute for the path.
          */
         put(path, handler) {
-            this._internalRoutes.put.set(path, handler);
-            if (this._empty) this._empty = false;
+            this.#internalRoutes.put.set(path, handler);
+            this.#toggleEmpty();
         }
 
         /**
@@ -63,8 +61,8 @@ class AppExpress {
          * @param {RequestHandler} handler - The handler to execute for the path.
          */
         patch(path, handler) {
-            this._internalRoutes.patch.set(path, handler);
-            if (this._empty) this._empty = false;
+            this.#internalRoutes.patch.set(path, handler);
+            this.#toggleEmpty();
         }
 
         /**
@@ -74,8 +72,8 @@ class AppExpress {
          * @param {RequestHandler} handler - The handler to execute for the path.
          */
         delete(path, handler) {
-            this._internalRoutes.delete.set(path, handler);
-            if (this._empty) this._empty = false;
+            this.#internalRoutes.delete.set(path, handler);
+            this.#toggleEmpty();
         }
 
         /**
@@ -85,8 +83,8 @@ class AppExpress {
          * @param {RequestHandler} handler - The handler to execute for the path.
          */
         options(path, handler) {
-            this._internalRoutes.options.set(path, handler);
-            if (this._empty) this._empty = false;
+            this.#internalRoutes.options.set(path, handler);
+            this.#toggleEmpty();
         }
 
         /**
@@ -96,43 +94,67 @@ class AppExpress {
          * @param {RequestHandler} handler - The handler to execute for the path.
          */
         all(path, handler) {
-            this._internalRoutes.all.set(path, handler);
-            if (this._empty) this._empty = false;
+            this.#internalRoutes.all.set(path, handler);
+            this.#toggleEmpty();
+        }
+
+        /**
+         * This method is for accessing the built routes.\
+         * **Note**: This API is not for public consumption.
+         *
+         * @returns {{empty: boolean, internalRoutes: RequestMethods}} The routes and their respective handlers.
+         */
+        read(accessor) {
+            if (accessor instanceof AppExpress) {
+                return {
+                    empty: this.#empty,
+                    internalRoutes: this.#internalRoutes,
+                };
+            }
+        }
+
+        /**
+         * Sets the flag to not empty if at-least one route handler is added.\
+         * The logic is to access the `emptiness` at fast path instead of checking all the methods in the RequestMethods.
+         */
+        #toggleEmpty() {
+            if (this.#empty) this.#empty = false;
         }
     };
 
-    constructor() {
-        /** @type {RequestHandler[]} */
-        this._middlewares = [];
+    /** @type AppwriteFunctionContext */
+    #context;
 
-        /** @type {InjectionRegistry} */
-        this._dependencies = new Map();
+    /** @type RequestHandler[] */
+    #middlewares = [];
 
-        /** @type string */
-        this._views = '';
+    /** @type InjectionRegistry */
+    #dependencies = new Map();
 
-        /** @type RequestMethods */
-        this._routes = requestMethods();
+    /** @type string */
+    #views = '';
 
-        /** @type ViewEngineHandler */
-        this._engine = new Map();
+    /** @type RequestMethods */
+    #routes = requestMethods();
 
-        /**
-         * The base directory inside the docker container where the function is run.\
-         * See [here](https://github.com/open-runtimes/open-runtimes/blob/16bf063b60f1f2a150b6caa9afdd2d1786e7ca35/runtimes/node-18.0/src/server.js#L6) how the exact path is derived.
-         *
-         * @type string
-         */
-        this.baseDirectory = './src/function';
+    /** @type ViewEngineHandler */
+    #engine = new Map();
+
+    /**
+     * The base directory inside the docker container where the function is run.\
+     * See [here](https://github.com/open-runtimes/open-runtimes/blob/16bf063b60f1f2a150b6caa9afdd2d1786e7ca35/runtimes/node-18.0/src/server.js#L6) how the exact path is derived.
+     *
+     * @type string
+     */
+    get baseDirectory() {
+        return './src/function';
     }
 
     /**
      * Set a custom view engine.\
      * Out of the box supported engines are - `ejs`, `express-hbs`, `hbs` & `pug`.
      *
-     * You can create a custom engine too!
-     *
-     * Define Engine:
+     * You can create a custom engine too! Define one like:
      * ```javascript
      * import fs from 'fs';
      *
@@ -158,7 +180,7 @@ class AppExpress {
      *
      * Usage:
      *```javascript
-     * app.get('/', (req, res) => {
+     * appExpress.get('/', (req, res) => {
      *   res.render('index', { title: 'AppExpress' })
      * })
      * ```
@@ -170,11 +192,11 @@ class AppExpress {
         // `hbs`, `ejs`, `pug` have this variable,
         // that is handled by express internally.
         if (engine.hasOwnProperty('__express')) {
-            this._engine.set(ext, engine.__express);
+            this.#engine.set(ext, engine.__express);
         } else if (typeof engine === 'function') {
             // `express-hbs` uses 4 params,
             // but adjusts to 3 dynamically.
-            if (engine.length >= 3) this._engine.set(ext, engine);
+            if (engine.length >= 3) this.#engine.set(ext, engine);
             else {
                 throw new Error(
                     `Your custom engine function must have exactly 3 methods (filePath, options, callback(error, content). Current length: ${engine.length}`,
@@ -221,7 +243,7 @@ class AppExpress {
      * ```
      */
     middleware(middleware) {
-        this._middlewares.push(middleware);
+        this.#middlewares.push(middleware);
     }
 
     /**
@@ -233,14 +255,16 @@ class AppExpress {
      * @see {AppExpress.Router}
      */
     use(path, router) {
-        if (router._empty) {
+        const config = router.read(this);
+
+        if (config.empty) {
             throw new Error(`No routes defined for path '${path}'.`);
         }
 
-        for (const method in router._internalRoutes) {
-            router._internalRoutes[method].forEach((handler, route) => {
+        for (const method in config.internalRoutes) {
+            config.internalRoutes[method].forEach((handler, route) => {
                 const fullPath = this.#normalizePath(path, route);
-                this._routes[method].set(fullPath, handler);
+                this.#routes[method].set(fullPath, handler);
             });
         }
     }
@@ -252,7 +276,7 @@ class AppExpress {
      * @param {RequestHandler} handler - The handler to execute for the path.
      */
     get(path, handler) {
-        this._routes.get.set(path, handler);
+        this.#routes.get.set(path, handler);
     }
 
     /**
@@ -262,7 +286,7 @@ class AppExpress {
      * @param {RequestHandler} handler - The handler to execute for the path.
      */
     post(path, handler) {
-        this._routes.post.set(path, handler);
+        this.#routes.post.set(path, handler);
     }
 
     /**
@@ -272,7 +296,7 @@ class AppExpress {
      * @param {RequestHandler} handler - The handler to execute for the path.
      */
     put(path, handler) {
-        this._routes.put.set(path, handler);
+        this.#routes.put.set(path, handler);
     }
 
     /**
@@ -282,7 +306,7 @@ class AppExpress {
      * @param {RequestHandler} handler - The handler to execute for the path.
      */
     patch(path, handler) {
-        this._routes.patch.set(path, handler);
+        this.#routes.patch.set(path, handler);
     }
 
     /**
@@ -292,7 +316,7 @@ class AppExpress {
      * @param {RequestHandler} handler - The handler to execute for the path.
      */
     delete(path, handler) {
-        this._routes.delete.set(path, handler);
+        this.#routes.delete.set(path, handler);
     }
 
     /**
@@ -302,7 +326,7 @@ class AppExpress {
      * @param {RequestHandler} handler - The handler to execute for the path.
      */
     options(path, handler) {
-        this._routes.options.set(path, handler);
+        this.#routes.options.set(path, handler);
     }
 
     /**
@@ -312,7 +336,7 @@ class AppExpress {
      * @param {RequestHandler} handler - The handler to execute for the path.
      */
     all(path, handler) {
-        this._routes.all.set(path, handler);
+        this.#routes.all.set(path, handler);
     }
 
     /**
@@ -328,7 +352,7 @@ class AppExpress {
         const objectName = objectType.name;
         const key = identifier ? `${objectName}:${identifier}` : objectName;
 
-        if (this._dependencies.has(key)) {
+        if (this.#dependencies.has(key)) {
             if (identifier) {
                 throw new Error(
                     `An instance of '${objectName}' with identifier '${identifier}' is already injected.`,
@@ -340,7 +364,7 @@ class AppExpress {
             }
         }
 
-        this._dependencies.set(key, { type: objectType, instance: object });
+        this.#dependencies.set(key, { type: objectType, instance: object });
     }
 
     /**
@@ -349,7 +373,7 @@ class AppExpress {
      * @param {string} directory='' - The directory path containing the views.
      */
     views(directory = '') {
-        this._views = directory;
+        this.#views = directory;
     }
 
     /**
@@ -440,29 +464,27 @@ class AppExpress {
 
     /**
      * Handle incoming requests.
-     *
-     * @param {AppwriteFunctionContext} context - The context provided by the executed `Appwrite Function`.
      */
-    async #handleRequest(context) {
+    async #handleRequest() {
         // appwrite context.
-        this._context = context;
+        const context = this.#context;
 
         // build the request and response.
         const request = new AppExpressRequest(context);
         const response = new AppExpressResponse(context);
 
         // setup response handler.
-        context.req.dependencies = this._dependencies;
+        context.req._dependencies = this.#dependencies;
         context.res._baseDirectory = this.baseDirectory;
-        if (this._views) context.res._views = this._views;
-        if (this._engine.size) context.res._engine = this._engine;
+        if (this.#views) context.res._views = this.#views;
+        if (this.#engine.size) context.res._engine = this.#engine;
 
         // find the route...
         const method = request.method;
-        let routeHandler = this._routes[method].get(request.path);
+        let routeHandler = this.#routes[method].get(request.path);
 
         if (!routeHandler) {
-            for (const [path, handler] of this._routes[method]) {
+            for (const [path, handler] of this.#routes[method]) {
                 // Skip wildcard during matching.
                 if (path === '*') continue;
 
@@ -486,7 +508,7 @@ class AppExpress {
         }
 
         if (!routeHandler) {
-            for (const [path, handler] of this._routes.all) {
+            for (const [path, handler] of this.#routes.all) {
                 const regexPattern = path
                     .replace(/:\w+/g, '([^/]+)')
                     .replace(/\*/g, '.*');
@@ -499,13 +521,13 @@ class AppExpress {
         }
 
         if (!routeHandler) {
-            routeHandler = this._routes[method].get('*');
+            routeHandler = this.#routes[method].get('*');
             // can this ever be a use-case? IDK.
-            if (!routeHandler) routeHandler = this._routes.all.get('*');
+            if (!routeHandler) routeHandler = this.#routes.all.get('*');
         }
 
         // execute the middlewares.
-        for (const middleware of this._middlewares) {
+        for (const middleware of this.#middlewares) {
             // allowing middlewares to return things,
             // example: a favicon handler or an auth check middleware.
             await middleware(request, response, context.log, context.error);
@@ -547,12 +569,12 @@ class AppExpress {
         if (patternParts.length !== pathParts.length) return;
 
         // default empty list.
-        this._context.req.params = {};
+        this.#context.req.params = {};
 
         for (let index = 0; index < patternParts.length; index++) {
             if (patternParts[index].startsWith(':')) {
                 const paramName = patternParts[index].substring(1);
-                this._context.req.params[paramName] = pathParts[index];
+                this.#context.req.params[paramName] = pathParts[index];
             }
         }
     }
@@ -561,8 +583,8 @@ class AppExpress {
      * Clears the dependency if any was injected.
      */
     #clearDependencies() {
-        this._dependencies.length = 0;
-        this._context.req.dependencies.length = 0;
+        this.#dependencies.length = 0;
+        this.#context.req._dependencies.length = 0;
     }
 
     /**
@@ -587,7 +609,7 @@ class AppExpress {
      * @returns {boolean}
      */
     #contextHasReturn() {
-        const context = this._context;
+        const context = this.#context;
         return (
             context.res.dynamic !== null && context.res.dynamic !== undefined
         );
@@ -603,7 +625,7 @@ class AppExpress {
         this.#clearDependencies();
 
         if (this.#contextHasReturn()) {
-            const response = this._context.res;
+            const response = this.#context.res;
             const result = response.dynamic;
 
             /**
@@ -625,7 +647,7 @@ class AppExpress {
                 return result;
             }
         } else {
-            const request = this._context.req;
+            const request = this.#context.req;
             return this.#sendErrorResult(
                 `Invalid return from route ${request.path}. Use 'response.empty()' if no response is expected.`,
             );
@@ -640,11 +662,11 @@ class AppExpress {
      */
     #sendErrorResult(error) {
         // for console executions.
-        this._context.error(error);
+        this.#context.error(error);
 
         // return as per original implementation,
         // open-runtimes > node* > src > server.js
-        return this._context.res.send(error, 500, {
+        return this.#context.res.send(error, 500, {
             'content-type': 'text/plain',
         });
     }
@@ -655,7 +677,11 @@ class AppExpress {
      * @param {AppwriteFunctionContext} context - The context provided by the executed `Appwrite Function`.
      */
     async attach(context) {
-        return await this.#handleRequest(context);
+        // appwrite context.
+        this.#context = context;
+
+        // attach AppExpress to Function.
+        return await this.#handleRequest();
     }
 }
 
