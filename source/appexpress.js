@@ -140,6 +140,9 @@ class AppExpress {
     /** @type ViewEngineHandler */
     #engine = new Map();
 
+    /** @type boolean*/
+    #showPoweredBy = true;
+
     /**
      * The base directory inside the docker container where the function is run.\
      * See [here](https://github.com/open-runtimes/open-runtimes/blob/16bf063b60f1f2a150b6caa9afdd2d1786e7ca35/runtimes/node-18.0/src/server.js#L6) how the exact path is derived.
@@ -419,6 +422,18 @@ class AppExpress {
     }
 
     /**
+     * Whether to add response header - `X-Powered-By: AppExpress`.\
+     * If a custom value for the header is provided, it will be preserved.
+     *
+     * Enabled by default.
+     *
+     * @param {boolean} value - No header is added if you pass `false` or set your own header value.
+     */
+    poweredByHeader(value) {
+        this.#showPoweredBy = value;
+    }
+
+    /**
      * Reads a given directory and builds file mappings.
      *
      * @param {string} directory - The directory to read.
@@ -628,6 +643,8 @@ class AppExpress {
             const response = this.#context.res;
             const result = response.dynamic;
 
+            this.#addPoweredByHeader(result);
+
             /**
              * So what is happening here?
              *
@@ -651,6 +668,18 @@ class AppExpress {
             return this.#sendErrorResult(
                 `Invalid return from route ${request.path}. Use 'response.empty()' if no response is expected.`,
             );
+        }
+    }
+
+    /**
+     * Adds the "X-Powered-By" header.
+     */
+    #addPoweredByHeader(dynamic) {
+        if (!dynamic.headers) return;
+
+        const headerKey = 'X-Powered-By';
+        if (this.#showPoweredBy && !dynamic.headers[headerKey]) {
+            dynamic.headers[headerKey] = 'AppExpress';
         }
     }
 

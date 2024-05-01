@@ -175,7 +175,7 @@ describe('Custom headers validation', () => {
     });
 
     it('should only return the default header', async () => {
-        const expected = { length: 1, type: 'text/plain' };
+        const expected = { length: 2, type: 'text/plain' };
         const context = createContext({
             path: `/headers/clear`,
         });
