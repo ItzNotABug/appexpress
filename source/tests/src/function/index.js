@@ -159,8 +159,6 @@ express.use('/lorem_ipsum', injectionRouter);
 const headersRouter = new AppExpress.Router();
 headersRouter.get('/:uuid', (request, response) => {
     const { uuid } = request.params;
-    express.poweredByHeader(false);
-
     response.setHeaders({ 'custom-header': uuid });
     response.send(uuid);
 });
