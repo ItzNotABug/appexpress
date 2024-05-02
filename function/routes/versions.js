@@ -1,8 +1,8 @@
-import appexpress from '@itznotabug/appexpress';
+import AppExpress from '@itznotabug/appexpress';
 import thisPackage from '../package.json' assert { type: 'json' };
 import sourcePackage from '@itznotabug/appexpress/package.json' assert { type: 'json' };
 
-const router = new appexpress.Router();
+const router = new AppExpress.Router();
 router.get('/', (_, response) => {
     response.json({
         function: thisPackage.version,
