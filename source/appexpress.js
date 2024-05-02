@@ -2,10 +2,11 @@
 
 import fs from 'fs';
 import path from 'path';
+import zlib from 'zlib';
 import mime from 'mime-types';
-import { requestMethods } from './types/misc.js';
 import AppExpressRequest from './types/request.js';
 import AppExpressResponse from './types/response.js';
+import { isCompressible, requestMethods } from './types/misc.js';
 
 /**
  * An `express.js` like framework for Appwrite Functions, enabling super-easy navigation!
@@ -142,6 +143,12 @@ class AppExpress {
 
     /** @type boolean*/
     #showPoweredBy = true;
+
+    /** @type {boolean|CompressionHandler} */
+    #compression = true;
+
+    /** @type {{br: number, deflate: number, gzip: number}}*/
+    #compressionLevel = { br: 11, gzip: 6, deflate: 6 };
 
     /**
      * The base directory inside the docker container where the function is run.\
@@ -434,6 +441,52 @@ class AppExpress {
     }
 
     /**
+     * Compress body content when sending responses back to the client.
+     *
+     * **Note**: Supported encodings are `br`, `gzip`, and `deflate`.
+     * If the client supports multiple encodings, `br` is prioritized.
+     *
+     * Example for custom compression -
+     * ```javascript
+     * import zstd from '@mongodb-js/zstd';
+     *
+     * express.compression({
+     *   encodings: new Set(['zstd']),
+     *   compress: async (buffer) => {
+     *       return await zstd.compress(buffer, 9);
+     *   }
+     * });
+     * ```
+     *
+     * @param {boolean|CompressionHandler} value - Determines whether to enable compression, which is enabled by default, or to provide a custom compression handler.
+     * @param {{br: number, deflate: number, gzip: number}} [options={ br: 11, gzip: 6, deflate: 6 }] - Specifies the compression levels for the supported encodings.
+     */
+    compression(value = true, options = { br: 11, gzip: 6, deflate: 6 }) {
+        if (Object.keys(options).length !== 3) {
+            throw new Error(
+                'Please provide compression level options for all the supported encodings.',
+            );
+        }
+
+        this.#compression = value;
+
+        this.#validateCompression(options.br, 1, 11);
+        this.#validateCompression(options.gzip, 1, 9);
+        this.#validateCompression(options.deflate, 1, 9);
+
+        this.#compressionLevel = options;
+    }
+
+    /**
+     * Validate min and max compression levels for an encoding.
+     */
+    #validateCompression(encoding, min, max) {
+        if (encoding < min || encoding > max) {
+            throw new Error('Invalid compression level provided.');
+        }
+    }
+
+    /**
      * Reads a given directory and builds file mappings.
      *
      * @param {string} directory - The directory to read.
@@ -654,6 +707,7 @@ class AppExpress {
             if (response.promise) {
                 try {
                     result.body = await result.body;
+                    await this.#compress(result);
                     return result;
                 } catch (error) {
                     return this.#sendErrorResult(
@@ -661,6 +715,7 @@ class AppExpress {
                     );
                 }
             } else {
+                await this.#compress(result);
                 return result;
             }
         } else {
@@ -698,6 +753,105 @@ class AppExpress {
         return this.#context.res.send(error, 500, {
             'content-type': 'text/plain',
         });
+    }
+
+    /**
+     * Apply appropriate compression based on the accepted encoding.
+     *
+     * @param {Object} dynamic - The dynamic object containing body, statusCode and headers.
+     */
+    async #compress(dynamic) {
+        if (!this.#compression) return;
+
+        const { headers, body } = dynamic;
+        const reqHeaders = this.#context.req.headers;
+        const acceptEncoding = reqHeaders['accept-encoding'];
+        if (!acceptEncoding) return;
+
+        let buffer;
+        const encodings = acceptEncoding.split(',').map((enc) => enc.trim());
+
+        if (Buffer.isBuffer(body)) buffer = body;
+        else if (typeof body === 'string') buffer = Buffer.from(body);
+        else return;
+
+        if (
+            // apply user side compression if available.
+            !(await this.#userCompression(encodings, headers, buffer, dynamic))
+        ) {
+            // just apply the default compression
+            this.#defaultCompression(encodings, headers, buffer, dynamic);
+        }
+    }
+
+    /**
+     * Use a compression provided by the user.
+     */
+    async #userCompression(encodings, headers, buffer, dynamic) {
+        if (typeof this.#compression !== 'boolean') {
+            /** @type CompressionHandler */
+            const compressor = this.#compression;
+
+            const contentType = headers['content-type'];
+            const compressorEncodings = compressor.encodings;
+            const supportedEncoding = encodings.find((encoding) =>
+                compressorEncodings.has(encoding),
+            );
+
+            if (!supportedEncoding || !isCompressible(contentType)) {
+                return false;
+            }
+
+            const compressedContent = await compressor.compress(buffer);
+            headers['content-encoding'] =
+                Array.from(compressorEncodings).join(', ');
+
+            this.#updateDynamic(dynamic, headers, compressedContent);
+            return true;
+        } else return false;
+    }
+
+    /**
+     * Use the default standard compressions.
+     */
+    #defaultCompression(encodings, headers, buffer, dynamic) {
+        const contentType = headers['content-type'];
+
+        if (!isCompressible(contentType)) return;
+
+        let compressedContent;
+
+        // perf. wise : br > gzip > deflate.
+        if (encodings.includes('br')) {
+            headers['content-encoding'] = 'br';
+            compressedContent = zlib.brotliCompressSync(buffer, {
+                params: {
+                    [zlib.constants.BROTLI_PARAM_QUALITY]:
+                        this.#compressionLevel.br,
+                },
+            });
+        } else if (encodings.includes('gzip')) {
+            headers['content-encoding'] = 'gzip';
+            compressedContent = zlib.gzipSync(buffer, {
+                level: this.#compressionLevel.gzip,
+            });
+        } else if (encodings.includes('deflate')) {
+            headers['content-encoding'] = 'deflate';
+            compressedContent = zlib.deflateSync(buffer, {
+                level: this.#compressionLevel.deflate,
+            });
+        } else return;
+
+        this.#updateDynamic(dynamic, headers, compressedContent);
+    }
+
+    /**
+     * Update the dynamic object with provided data.
+     */
+    #updateDynamic(dynamic, headers, body) {
+        dynamic.body = body;
+        dynamic.headers = headers;
+        headers['content-length'] = body.length;
     }
 
     /**
