@@ -32,30 +32,29 @@ Discover AppExpress in action through a demo:
 
 Your contributions are valued, whether it's reporting issues or suggesting enhancements!
 
-#### Reporting Issues
+- #### Reporting Issues
 
-Encounter a bug or have a suggestion? Please file it via
-the [issue tracker](https://github.com/ItzNotABug/appexpress/issues).
+  Encounter a bug or have a suggestion? Please file it via
+  the [issue tracker](https://github.com/ItzNotABug/appexpress/issues).
 
-#### Submitting Pull Requests
+- #### Submitting Pull Requests
 
-Want to make contributions?\
-Here’s how you can do so effectively:
+  Want to make contributions? Here’s how you can do so effectively:
 
-1. **Fork the Repository & Create a Branch**
-    - Fork the repo and start from a new branch.
-    - Name your branch appropriately:
-        - Bug fixes: `fix-issueNumber-description` (e.g., `fix-11-remove-excess-forward-slashes`)
-        - Feature additions: `feat-issueNumber-description` (e.g., `feat-09-add-view-engine-support`)
-        - Documentation tweaks: Clearly state the nature of your updates.
+    1. **Fork the Repository & Create a Branch**
+        - Fork the repo and start from a new branch.
+        - Name your branch appropriately:
+            - Bug fixes: `fix-issueNumber-description` (e.g., `fix-11-remove-excess-forward-slashes`)
+            - Feature additions: `feat-issueNumber-description` (e.g., `feat-09-add-view-engine-support`)
+            - Documentation tweaks: Clearly state the nature of your updates.
 
-2. **Develop & Test**
-    - Implement your changes and ensure code quality by running `npm run lint`.
-    - Resolve any formatting issues with `npm run format`.
-    - For new features or refactoring, add and run tests using `npm run tests`.
+    2. **Develop & Test**
+        - Implement your changes and ensure code quality by running `npm run lint`.
+        - Resolve any formatting issues with `npm run format`.
+        - For new features or refactoring, add and run tests using `npm run tests`.
 
-3. **Open a Pull Request**
-    - Ensure you're assigned to the issue before proceeding to PR.
+    3. **Open a Pull Request**
+        - Ensure you're assigned to the issue before proceeding to PR.
 
 ### Support the Project
 
