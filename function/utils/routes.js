@@ -3,13 +3,10 @@ const METHODS = {
     POST: 'POST',
     PATCH: 'PATCH',
     DELETE: 'DELETE',
-    OPTIONS: 'OPTIONS'
+    OPTIONS: 'OPTIONS',
 };
 
-const HOMEPAGE_SUBPATHS = [
-    '/robots.txt',
-    '/favicon.ico'
-];
+const HOMEPAGE_SUBPATHS = ['/robots.txt', '/favicon.ico'];
 
 function addIfNotEmpty(target, key, value) {
     if (value && Object.keys(value).length > 0) {
@@ -33,26 +30,18 @@ export const registeredRoutes = {
         subPaths: HOMEPAGE_SUBPATHS,
         query: {
             type: 'string',
-            acceptable: [
-                'md',
-                'ejs',
-                'hbs',
-                'pug',
-                'html',
-                'string'
-            ]
-        }
-
+            acceptable: ['md', 'ejs', 'hbs', 'pug', 'html', 'string'],
+        },
     }),
     '/all': createRoute([
         METHODS.GET,
         METHODS.POST,
         METHODS.PATCH,
         METHODS.DELETE,
-        METHODS.OPTIONS
+        METHODS.OPTIONS,
     ]),
     '/console': createRoute([METHODS.GET], {
-        body: { userJwtToken: 'string' }
+        body: { userJwtToken: 'string' },
     }),
     '/dump': createRoute([METHODS.GET]),
     '/empty': createRoute([METHODS.GET]),
@@ -60,12 +49,12 @@ export const registeredRoutes = {
     '/ping': createRoute([METHODS.GET]),
     '/pong': createRoute([METHODS.POST]),
     '/redirect': createRoute([METHODS.GET], {
-        query: { redirect_url: 'string' }
+        query: { redirect_url: 'string' },
     }),
     '/users/:id/:transaction': createRoute([METHODS.GET], {
-        params: { id: 'string', transaction: 'string' }
+        params: { id: 'string', transaction: 'string' },
     }),
-    '/versions': createRoute([METHODS.GET])
+    '/versions': createRoute([METHODS.GET]),
 };
 
 console.log(JSON.stringify(registeredRoutes, null, 2));
