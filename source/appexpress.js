@@ -851,7 +851,7 @@ class AppExpress {
     #updateDynamic(dynamic, headers, body) {
         dynamic.body = body;
         dynamic.headers = headers;
-        headers['content-length'] = body.length;
+        dynamic.headers['content-length'] = body.length;
     }
 
     /**
