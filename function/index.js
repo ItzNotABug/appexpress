@@ -1,4 +1,3 @@
-import zstd from '@mongodb-js/zstd';
 import AppExpress from '@itznotabug/appexpress';
 
 // misc
@@ -23,14 +22,8 @@ express.views('views');
 // excluding the favicon cz we have a middleware for that.
 express.static('public', ['favicon.ico']);
 
+// enabled by default.
 express.compression(true);
-express.compression({
-    encodings: new Set(['zstd']),
-    compress: async (buffer) => {
-        // https://engineering.fb.com/2016/08/31/core-infra/smaller-and-faster-data-compression-with-zstandard/
-        return await zstd.compress(buffer, 9);
-    },
-});
 
 // custom middlewares
 express.middleware(favIconMiddleware);
