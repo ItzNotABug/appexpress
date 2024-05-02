@@ -1,11 +1,10 @@
-import appexpress from '@itznotabug/appexpress';
+import AppExpress from '@itznotabug/appexpress';
 
-const router = new appexpress.Router();
-
-router.get('/', (request, response) => {
+const router = new AppExpress.Router();
+router.get('/', (_, res) => {
     const start = process.hrtime();
     const healthcheck = health(start);
-    response.send(healthcheck);
+    res.send(healthcheck);
 });
 
 export default router;

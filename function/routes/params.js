@@ -1,9 +1,9 @@
-import appexpress from '@itznotabug/appexpress';
+import AppExpress from '@itznotabug/appexpress';
 
-const router = new appexpress.Router();
-router.get('/', (request, response) => {
-    const { id, transaction } = request.params;
-    response.send(`User Id: ${id}, Transaction ID: ${transaction}`);
+const router = new AppExpress.Router();
+router.get('/', (req, res) => {
+    const { id, transaction } = req.params;
+    res.send(`User Id: ${id}, Transaction ID: ${transaction}`);
 });
 
 export default router;

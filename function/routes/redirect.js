@@ -1,10 +1,10 @@
-import appexpress from '@itznotabug/appexpress';
+import AppExpress from '@itznotabug/appexpress';
 
-const router = new appexpress.Router();
-router.get('/', (request, response) => {
-    const query = request.query;
+const router = new AppExpress.Router();
+router.get('/', (req, res) => {
+    const query = res.query;
     const url = query['redirect_url'] ?? 'https://github.com/itznotabug';
-    response.redirect(url);
+    res.redirect(url);
 });
 
 export default router;
