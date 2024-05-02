@@ -1,10 +1,13 @@
 import fs from 'fs';
-import crypto from 'node:crypto';
-import assert from 'node:assert';
+import zlib from 'zlib';
+import crypto from 'crypto';
+import assert from 'assert';
 import { describe, it } from 'node:test';
 
 import index from './src/function/index.js';
 import { createContext } from './utils/context.js';
+
+const publicDir = './src/function/public';
 
 describe('Direct requests to all supported methods', () => {
     ['get', 'post', 'put', 'patch', 'delete', 'options'].forEach((method) => {
@@ -248,8 +251,6 @@ describe('Render partials contents on supported engines', () => {
 });
 
 describe('Public static resource handling', () => {
-    const publicDir = './src/function/public';
-
     it('should return the contents of ads.txt', async () => {
         const adsTxt = `${publicDir}/ads.txt`;
         const adsTxtContent = fs.readFileSync(adsTxt, 'utf8');
@@ -323,5 +324,53 @@ describe('Multiple returns error validation', () => {
         }
 
         assert.strictEqual(message, expected);
+    });
+});
+
+describe('HTTP compression validation', () => {
+    it(`should return a compressed buffer for ads.txt using GZIP`, async () => {
+        const favicon = `${publicDir}/ads.txt`;
+        const faviconContent = fs.readFileSync(favicon);
+        const compressedContent = zlib.gzipSync(faviconContent, { level: 6 });
+
+        const context = createContext({
+            path: '/ads.txt',
+            headers: { 'accept-encoding': 'gzip' },
+        });
+
+        const { body } = await index(context);
+        assert.deepStrictEqual(body, compressedContent);
+    });
+
+    it(`should return a compressed buffer for favicon.ico using Brotli`, async () => {
+        const favicon = `${publicDir}/favicon.ico`;
+        const faviconContent = fs.readFileSync(favicon);
+        const compressedContent = zlib.brotliCompressSync(faviconContent, {
+            params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 },
+        });
+
+        const context = createContext({
+            path: '/favicon.ico',
+            headers: { 'accept-encoding': 'br' },
+        });
+
+        const { body } = await index(context);
+        assert.deepStrictEqual(body, compressedContent);
+    });
+
+    it(`should return a compressed buffer for robots.txt using Deflate`, async () => {
+        const favicon = `${publicDir}/robots.txt`;
+        const faviconContent = fs.readFileSync(favicon);
+        const compressedContent = zlib.deflateSync(faviconContent, {
+            level: 6,
+        });
+
+        const context = createContext({
+            path: '/robots.txt',
+            headers: { 'accept-encoding': 'deflate' },
+        });
+
+        const { body } = await index(context);
+        assert.deepStrictEqual(body, compressedContent);
     });
 });

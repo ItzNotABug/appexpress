@@ -6,18 +6,26 @@
  *
  * @property {Object} req - The request object, encapsulating details such as headers, method, and body.
  * @property {Object} res - The response object, used for sending data back to the client.
- * @property {function(message: string): void} log - Function to log debug messages.
- * @property {function(error: string): void} error - Function to log error messages.
+ * @property {(message: string) => void} log - Function to log debug messages.
+ * @property {(error: string) => void} error - Function to log error messages.
  */
 
 /**
- * @typedef {function(request: AppExpressRequest, response: AppExpressResponse, log: function(string): void, error: function(string): void): any} RequestHandler
+ * @typedef {(request: AppExpressRequest, response: AppExpressResponse, log: function(string): void, error: function(string): void) => any} RequestHandler
  * @description Represents a function that handles requests. It accepts a request object, a response object, and two logging functions (for logging and errors).
  */
 
 /**
  * @typedef {Map<string, {type: Function, instance: any}>} InjectionRegistry
  * @description Manages and tracks dependency injections, mapping unique identifiers to their respective instances and types.
+ */
+
+/**
+ * @typedef {Object} CompressionHandler
+ * @description Represents a function that allows a user to use a custom compression for HTTP responses.
+ *
+ * @property {Set<string>} encodings - The list of encodings that the handler supports.
+ * @property {(buffer: Buffer) => Promise<Buffer>|Buffer} compress - Function to compress data.
  */
 
 /**
@@ -54,3 +62,23 @@ export function requestMethods() {
         all: new Map(),
     };
 }
+
+/**
+ * Returns a function that checks if a given content type is compressible.
+ *
+ * @returns {boolean} Returns true if the content type is compressible.
+ */
+export const isCompressible = (contentType) => {
+    const contentTypePatterns = [
+        /^text\/(html|css|plain|xml|x-component|javascript)$/i,
+        /^application\/(x-javascript|javascript|json|manifest\+json|vnd\.api\+json|xml|xhtml\+xml|rss\+xml|atom\+xml|vnd\.ms-fontobject|x-font-ttf|x-font-opentype|x-font-truetype)$/i,
+        /^image\/(svg\+xml|x-icon|vnd\.microsoft\.icon)$/i,
+        /^font\/(ttf|eot|otf|opentype)$/i,
+    ];
+
+    for (const pattern of contentTypePatterns) {
+        if (pattern.test(contentType)) return true;
+    }
+
+    return false;
+};
