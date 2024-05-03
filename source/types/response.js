@@ -64,7 +64,9 @@ class AppExpressResponse {
      * typically used when there's no need to send back any data to the source.
      */
     empty() {
-        this.#wrapReturnForSource(this.#response.empty());
+        this.#wrapReturnForSource(
+            this.#response.send('', 204, this.#customHeaders),
+        );
     }
 
     /**
@@ -252,20 +254,18 @@ class AppExpressResponse {
             ...this.#customHeaders,
         });
 
-        this.#wrapReturnForSource(promiseDataType, true);
+        this.#wrapReturnForSource(promiseDataType);
     }
 
     /**
      * Wrap the return value for source.
      *
      * @param {any} data - The data to wrap for safety.
-     * @param {boolean} promise=false - Whether the provided data is a `Promise`.
      */
-    #wrapReturnForSource(data, promise = false) {
+    #wrapReturnForSource(data) {
         this.#checkIfAlreadyPrepared();
 
         this.#response.dynamic = data;
-        this.#response.promise = promise;
     }
 
     /**
