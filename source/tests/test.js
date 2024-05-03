@@ -178,7 +178,7 @@ describe('Custom headers validation', () => {
     });
 
     it('should only return the default header', async () => {
-        const expected = { length: 2, type: 'text/plain' };
+        const expected = { length: 3, type: 'text/plain' };
         const context = createContext({
             path: `/headers/clear`,
         });
@@ -372,5 +372,31 @@ describe('HTTP compression validation', () => {
 
         const { body } = await index(context);
         assert.deepStrictEqual(body, compressedContent);
+    });
+});
+
+describe('Extended middleware validation', () => {
+    it(`should return a header added by the middleware outgoing handler`, async () => {
+        const expected = {
+            'X-Powered-By': 'AppExpress',
+            'X-Server-Powered-By': 'Appwrite x Swoole',
+        };
+
+        const context = createContext({
+            path: '/outgoing',
+        });
+
+        const { headers } = await index(context);
+        assert.deepStrictEqual(headers, expected);
+    });
+
+    it(`should remove cookies from request an response`, async () => {
+        const context = createContext({
+            path: '/cookies',
+            headers: { cookie: crypto.randomUUID() },
+        });
+
+        const { headers } = await index(context);
+        assert.strictEqual(headers.cookie, undefined);
     });
 });
