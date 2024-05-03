@@ -162,8 +162,7 @@ class AppExpress {
 
     constructor() {
         this.middleware({
-            outgoing: async (_, interceptor) => {
-                await this.#compress(interceptor);
+            outgoing: (_, interceptor) => {
                 this.#addPoweredByHeader(interceptor);
             },
         });
@@ -714,8 +713,8 @@ class AppExpress {
 
             try {
                 /**
-                 * `await` the body because it `could` be a promise
-                 * that resolves to a html string for rendering or a buffer.
+                 * `await` the body because it `could` be a promise that
+                 * resolves to a html string for rendering content or a buffer.
                  */
                 result.body = await result.body;
 
@@ -727,6 +726,9 @@ class AppExpress {
                         this.#context.error,
                     );
                 }
+
+                // compress at the very end!
+                await this.#compress(result);
 
                 return result;
             } catch (error) {
