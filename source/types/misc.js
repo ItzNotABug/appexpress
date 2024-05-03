@@ -16,6 +16,20 @@
  */
 
 /**
+ * @typedef {Object} ResponseInterceptor
+ * @description Represents a function that allows intercepting, modifying or updating responses.
+ *
+ * @property {Buffer|string} body - The processed response body.
+ * @property {number} statusCode - The statusCode of the response.
+ * @property {Object<string, string|number>} headers - The headers added to the response.
+ */
+
+/**
+ * @typedef {(request: AppExpressRequest, body: ResponseInterceptor, log: function(string): void, error: function(string): void) => void} ResponseHandler
+ * @description Represents a function that intercepts or modifies or updates responses. It accepts a request object, a response interceptor object, and two logging functions (for logging and errors).
+ */
+
+/**
  * @typedef {Map<string, {type: Function, instance: any}>} InjectionRegistry
  * @description Manages and tracks dependency injections, mapping unique identifiers to their respective instances and types.
  */
