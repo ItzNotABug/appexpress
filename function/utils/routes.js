@@ -56,5 +56,3 @@ export const registeredRoutes = {
     }),
     '/versions': createRoute([METHODS.GET]),
 };
-
-console.log(JSON.stringify(registeredRoutes, null, 2));
