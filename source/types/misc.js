@@ -19,7 +19,8 @@
  * @typedef {Object} ResponseInterceptor
  * @description Represents a function that allows intercepting, modifying or updating responses.
  *
- * @property {Buffer|string} body - The processed response body.
+ * @property {string|Buffer|object} body - The processed response body.\
+ * **Note**: The contents of the body are not compressed yet.
  * @property {number} statusCode - The statusCode of the response.
  * @property {Object<string, string|number>} headers - The headers added to the response.
  */
