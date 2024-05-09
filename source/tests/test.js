@@ -399,4 +399,13 @@ describe('Extended middleware validation', () => {
         const { headers } = await index(context);
         assert.strictEqual(headers.cookie, undefined);
     });
+
+    it(`should return a body updated by the middleware outgoing handler`, async () => {
+        const context = createContext({
+            path: '/body_override',
+        });
+
+        const { body } = await index(context);
+        assert.strictEqual(body, 'outgoing');
+    });
 });

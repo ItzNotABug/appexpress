@@ -123,6 +123,13 @@ express.middleware({
     },
 });
 
+// override body content
+express.middleware({
+    outgoing: (request, interceptor) => {
+        if (request.path === '/body_override') interceptor.body = 'outgoing';
+    },
+});
+
 // directs
 express.get('/', (request, response) => response.send(request.method));
 express.post('/', (request, response) => response.send(request.method));
@@ -207,6 +214,7 @@ express.get('/error/multi-return', (_, response) => {
 });
 
 express.get('/outgoing', (_, res) => res.empty());
+express.get('/body_override', (_, res) => res.empty());
 express.get('/cookies', (_, res) => {
     res.setHeaders({ cookie: crypto.randomUUID() });
     res.empty();
