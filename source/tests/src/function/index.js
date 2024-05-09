@@ -35,7 +35,7 @@ express.engine('pug', pug); // pub
 express.engine(
     'hbs',
     hbs.express4({
-        partialsDir: path.join(express.baseDirectory, 'views/partials'),
+        partialsDir: path.join(AppExpress.baseDirectory, 'views/partials'),
     }),
 );
 
@@ -43,7 +43,7 @@ express.engine(
 express.engine(
     'html',
     hbs.express4({
-        partialsDir: path.join(express.baseDirectory, 'views/partials'),
+        partialsDir: path.join(AppExpress.baseDirectory, 'views/partials'),
     }),
 );
 
