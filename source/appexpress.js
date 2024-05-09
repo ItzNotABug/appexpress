@@ -126,6 +126,12 @@ class AppExpress {
     /** @type AppwriteFunctionContext */
     #context;
 
+    /** @type AppExpressRequest */
+    #request;
+
+    /** @type AppExpressResponse */
+    #response;
+
     /** @type {{incoming: RequestHandler[], outgoing: ResponseHandler[]}} */
     #middlewares = { incoming: [], outgoing: [] };
 
@@ -156,7 +162,7 @@ class AppExpress {
      *
      * @type string
      */
-    get baseDirectory() {
+    static get baseDirectory() {
         return './src/function';
     }
 
@@ -509,7 +515,7 @@ class AppExpress {
      */
     #processDirectory(directory, exclude) {
         let filesMapping = {};
-        let directoryStack = [path.join(this.baseDirectory, directory)];
+        let directoryStack = [path.join(AppExpress.baseDirectory, directory)];
 
         while (directoryStack.length) {
             const currentPath = directoryStack.pop();
@@ -534,7 +540,7 @@ class AppExpress {
                 if (content.isDirectory()) {
                     directoryStack.push(fullPath);
                 } else if (content.isFile()) {
-                    let relativePath = `/${path.relative(this.baseDirectory, fullPath)}`;
+                    let relativePath = `/${path.relative(AppExpress.baseDirectory, fullPath)}`;
                     relativePath = relativePath.replace(`/${directory}`, '');
                     filesMapping[relativePath] = fullPath;
                 }
@@ -548,22 +554,20 @@ class AppExpress {
      * Handle incoming requests.
      */
     async #handleRequest() {
-        // appwrite context.
-        const context = this.#context;
-
         // build the request and response.
-        const request = new AppExpressRequest(context);
-        const response = new AppExpressResponse(context);
+        this.#request = new AppExpressRequest(this.#context);
+        this.#response = new AppExpressResponse(this.#context);
 
         // setup response handler.
-        context.req._dependencies = this.#dependencies;
-        context.res._baseDirectory = this.baseDirectory;
-        if (this.#views) context.res._views = this.#views;
-        if (this.#engine.size) context.res._engine = this.#engine;
+        this.#context.req._dependencies = this.#dependencies;
+        this.#context.res._baseDirectory = AppExpress.baseDirectory;
+
+        if (this.#views) this.#context.res._views = this.#views;
+        if (this.#engine.size) this.#context.res._engine = this.#engine;
 
         // find the route...
-        const method = request.method;
-        let routeHandler = this.#routes[method].get(request.path);
+        const method = this.#request.method;
+        let routeHandler = this.#routes[method].get(this.#request.path);
 
         if (!routeHandler) {
             for (const [path, handler] of this.#routes[method]) {
@@ -575,12 +579,12 @@ class AppExpress {
                     .replace(/\*/g, '.*');
 
                 const regex = new RegExp('^' + regexPattern + '$');
-                const match = request.path.match(regex);
+                const match = this.#request.path.match(regex);
 
                 if (match) {
                     const keys = path.match(/:\w+/g);
                     if (keys) {
-                        this.#extractParamsFromRoute(request.path, path);
+                        this.#extractParamsFromRoute(this.#request.path, path);
                     }
 
                     routeHandler = handler;
@@ -596,7 +600,7 @@ class AppExpress {
                     .replace(/\*/g, '.*');
 
                 const regex = new RegExp('^' + regexPattern + '$');
-                if (regex.test(request.path)) {
+                if (regex.test(this.#request.path)) {
                     routeHandler = handler;
                 }
             }
@@ -612,26 +616,36 @@ class AppExpress {
         for (const middleware of this.#middlewares.incoming) {
             // allowing middlewares to return things,
             // example: a favicon handler or an auth check middleware.
-            await middleware(request, response, context.log, context.error);
+            await middleware(
+                this.#request,
+                this.#response,
+                this.#context.log,
+                this.#context.error,
+            );
 
-            // a middleware might return something.
+            // a middleware returned something.
             if (this.#contextHasReturn()) break;
         }
 
         if (this.#contextHasReturn()) {
             // a middleware indeed returned something.
-            return await this.#processHandlerResult(request);
+            return await this.#processHandlerResult();
         }
 
         if (routeHandler) {
             // execute the route handler.
-            await routeHandler(request, response, context.log, context.error);
+            await routeHandler(
+                this.#request,
+                this.#response,
+                this.#context.log,
+                this.#context.error,
+            );
 
-            return await this.#processHandlerResult(request);
+            return await this.#processHandlerResult();
         } else {
             // mimic express.js and return a similar error.
             return this.#sendErrorResult(
-                `Cannot ${request.method.toUpperCase()} '${request.path}'.`,
+                `Cannot ${this.#request.method.toUpperCase()} '${this.#request.path}'.`,
             );
         }
     }
@@ -691,53 +705,50 @@ class AppExpress {
      * @returns {boolean}
      */
     #contextHasReturn() {
-        const context = this.#context;
         return (
-            context.res.dynamic !== null && context.res.dynamic !== undefined
+            this.#context.res.dynamic !== null &&
+            this.#context.res.dynamic !== undefined
         );
     }
 
     /**
      * Handles the result from either the middleware or the router handler.
      *
-     * @param {AppExpressRequest} request - The request object.
      * @returns {*} The result from the `routeHandlerResult`.
      */
-    async #processHandlerResult(request) {
-        // clear the dependencies.
+    async #processHandlerResult() {
+        // clear dependencies.
         this.#clearDependencies();
 
         if (this.#contextHasReturn()) {
-            const response = this.#context.res;
-            const result = response.dynamic;
+            const dynamic = this.#context.res.dynamic;
 
             try {
                 /**
                  * `await` the body because it `could` be a promise that
                  * resolves to a html string for rendering content or a buffer.
                  */
-                result.body = await result.body;
+                dynamic.body = await dynamic.body;
 
                 for (const interceptor of this.#middlewares.outgoing) {
                     await interceptor(
-                        request,
-                        result,
+                        this.#request,
+                        dynamic,
                         this.#context.log,
                         this.#context.error,
                     );
                 }
 
                 // compress at the very end!
-                await this.#compress(result);
+                await this.#compress(dynamic);
 
-                return result;
+                return dynamic;
             } catch (error) {
                 return this.#sendErrorResult(`${error}`);
             }
         } else {
-            const request = this.#context.req;
             return this.#sendErrorResult(
-                `Invalid return from route ${request.path}. Use 'response.empty()' if no response is expected.`,
+                `Invalid return from route ${this.#request.path}. Use 'response.empty()' if no response is expected.`,
             );
         }
     }
