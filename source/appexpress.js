@@ -126,8 +126,8 @@ class AppExpress {
     /** @type AppwriteFunctionContext */
     #context;
 
-    /** @type RequestHandler[] */
-    #middlewares = [];
+    /** @type {{incoming: RequestHandler[], outgoing: ResponseHandler[]}} */
+    #middlewares = { incoming: [], outgoing: [] };
 
     /** @type InjectionRegistry */
     #dependencies = new Map();
@@ -158,6 +158,14 @@ class AppExpress {
      */
     get baseDirectory() {
         return './src/function';
+    }
+
+    constructor() {
+        this.middleware({
+            outgoing: (_, interceptor) => {
+                this.#addPoweredByHeader(interceptor);
+            },
+        });
     }
 
     /**
@@ -224,36 +232,42 @@ class AppExpress {
      *
      * **Note**: `request.params` are not available to middlewares due to no `pattern` awareness.
      *
-     * @param {RequestHandler} middleware - The middleware/request handler to add to the chain.
-     *
+     * @param {RequestHandler|{incoming: RequestHandler|undefined, outgoing: ResponseHandler|undefined}} middleware - The middleware/request handler to add to the chain.
      * @example
      * ```javascript
      * appExpress.middleware((request, response, log, error) => {
-     *      // do something with `request` object.
+     *   // do something with `request` object.
      *
-     *     log('this is a debug log');
-     *     error('this is an error log');
+     *   log('this is a debug log');
+     *   error('this is an error log');
      *
-     *     // throw an Error here to exit the middleware chain.
+     *   // throw an Error here to exit the middleware chain.
      * });
      * ```
      *
      * @example
      * ```javascript
-     * const loggingMiddleware = (request, response, log, error) => {
-     *     // do something with `request` object.
-     *
-     *     log('this is a debug log');
-     *     error('this is an error log');
-     *
-     *     response.send('logged') // this will exit the function.
-     * };
-     *
-     * appExpress.middleware(loggingMiddleware);
+     * appExpress.middleware({
+     *   incoming: (request, response, log, error) => {
+     *     // check request and response,
+     *     // or even return response if you like.
+     *   },
+     *   outgoing: (request, interceptor, log, error) => {
+     *     // you can modify the response here.
+     *     // interceptor.body, interceptor.statusCode, interceptor.headers.
+     *   }
+     * });
      * ```
      */
     middleware(middleware) {
-        this.#middlewares.push(middleware);
+        // preserve the previous behaviour.
+        if (typeof middleware === 'function') {
+            this.#middlewares.incoming.push(middleware);
+        } else if (typeof middleware === 'object') {
+            const { incoming, outgoing } = middleware;
+            if (incoming) this.#middlewares.incoming.push(incoming);
+            if (outgoing) this.#middlewares.outgoing.push(outgoing);
+        }
     }
 
     /**
@@ -594,8 +608,8 @@ class AppExpress {
             if (!routeHandler) routeHandler = this.#routes.all.get('*');
         }
 
-        // execute the middlewares.
-        for (const middleware of this.#middlewares) {
+        // execute the incoming middlewares.
+        for (const middleware of this.#middlewares.incoming) {
             // allowing middlewares to return things,
             // example: a favicon handler or an auth check middleware.
             await middleware(request, response, context.log, context.error);
@@ -606,14 +620,14 @@ class AppExpress {
 
         if (this.#contextHasReturn()) {
             // a middleware indeed returned something.
-            return await this.#processHandlerResult();
+            return await this.#processHandlerResult(request);
         }
 
         if (routeHandler) {
             // execute the route handler.
             await routeHandler(request, response, context.log, context.error);
 
-            return await this.#processHandlerResult();
+            return await this.#processHandlerResult(request);
         } else {
             // mimic express.js and return a similar error.
             return this.#sendErrorResult(
@@ -686,9 +700,10 @@ class AppExpress {
     /**
      * Handles the result from either the middleware or the router handler.
      *
+     * @param {AppExpressRequest} request - The request object.
      * @returns {*} The result from the `routeHandlerResult`.
      */
-    async #processHandlerResult() {
+    async #processHandlerResult(request) {
         // clear the dependencies.
         this.#clearDependencies();
 
@@ -696,27 +711,28 @@ class AppExpress {
             const response = this.#context.res;
             const result = response.dynamic;
 
-            this.#addPoweredByHeader(result);
+            try {
+                /**
+                 * `await` the body because it `could` be a promise that
+                 * resolves to a html string for rendering content or a buffer.
+                 */
+                result.body = await result.body;
 
-            /**
-             * So what is happening here?
-             *
-             * Well, to allow a user directly call `render` without `await`,
-             * we save the `Promise` in the body and send it here for completion.
-             */
-            if (response.promise) {
-                try {
-                    result.body = await result.body;
-                    await this.#compress(result);
-                    return result;
-                } catch (error) {
-                    return this.#sendErrorResult(
-                        `Error rendering a view, ${error}`,
+                for (const interceptor of this.#middlewares.outgoing) {
+                    await interceptor(
+                        request,
+                        result,
+                        this.#context.log,
+                        this.#context.error,
                     );
                 }
-            } else {
+
+                // compress at the very end!
                 await this.#compress(result);
+
                 return result;
+            } catch (error) {
+                return this.#sendErrorResult(`${error}`);
             }
         } else {
             const request = this.#context.req;

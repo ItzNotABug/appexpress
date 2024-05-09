@@ -106,6 +106,30 @@ express.middleware((request, response) => {
     }
 });
 
+// intercepting response
+express.middleware({
+    outgoing: (_, interceptor) => {
+        interceptor.headers['X-Server-Powered-By'] = 'Appwrite x Swoole';
+    },
+});
+
+// hard cookie remover
+express.middleware({
+    incoming: (request) => {
+        if (request.path === '/cookies') delete request.headers.cookie;
+    },
+    outgoing: (request, interceptor) => {
+        if (request.path === '/cookies') delete interceptor.headers.cookie;
+    },
+});
+
+// override body content
+express.middleware({
+    outgoing: (request, interceptor) => {
+        if (request.path === '/body_override') interceptor.body = 'outgoing';
+    },
+});
+
 // directs
 express.get('/', (request, response) => response.send(request.method));
 express.post('/', (request, response) => response.send(request.method));
@@ -187,6 +211,13 @@ express.get('/engines/article', (request, response) => {
 express.get('/error/multi-return', (_, response) => {
     response.send('ok');
     response.send('ok');
+});
+
+express.get('/outgoing', (_, res) => res.empty());
+express.get('/body_override', (_, res) => res.empty());
+express.get('/cookies', (_, res) => {
+    res.setHeaders({ cookie: crypto.randomUUID() });
+    res.empty();
 });
 
 // Appwrite Function Entrypoint!
