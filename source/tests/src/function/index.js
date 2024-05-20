@@ -7,7 +7,6 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-import jsx from '@itznotabug/appexpress-jsx';
 import AppExpress from '../../../appexpress.js';
 import noCookies from '@itznotabug/appexpress-nocookies';
 
@@ -33,7 +32,6 @@ express.static('public', [/^\..*env.*/i]);
 
 express.engine('ejs', ejs); // ejs
 express.engine('pug', pug); // pub
-express.engine(['js', 'jsx', 'tsx'], jsx.engine); // react
 
 // hbs, html
 express.engine(

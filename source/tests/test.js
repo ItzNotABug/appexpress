@@ -220,15 +220,13 @@ describe('Injected dependency validation', () => {
 describe('Render template contents', () => {
     const expected = `<h1>Welcome to AppExpress</h1>`;
 
-    ['ejs', 'hbs', 'pug', 'apw', 'md', 'js', 'jsx', 'tsx'].forEach(
-        (template) => {
-            it(`should return rendered content from ${template.toUpperCase()} template`, async () => {
-                const context = createContext({ path: `/engines/${template}` });
-                const { body } = await index(context);
-                assert.strictEqual(body, expected);
-            });
-        },
-    );
+    ['ejs', 'hbs', 'pug', 'apw', 'md'].forEach((template) => {
+        it(`should return rendered content from ${template.toUpperCase()} template`, async () => {
+            const context = createContext({ path: `/engines/${template}` });
+            const { body } = await index(context);
+            assert.strictEqual(body, expected);
+        });
+    });
 });
 
 describe('Render partials contents on supported engines', () => {
@@ -238,8 +236,6 @@ describe('Render partials contents on supported engines', () => {
         { engine: 'HBS', extension: 'hbs' },
         { engine: 'HBS', extension: 'html' },
         { engine: 'EJS', extension: 'ejs' },
-        { engine: 'JSX', extension: 'jsx' },
-        { engine: 'JSX', extension: 'tsx' },
     ].forEach(({ engine, extension }) => {
         it(`should render an article using ${engine.toUpperCase()} engine & ${extension.toUpperCase()} extension`, async () => {
             const context = createContext({
@@ -249,14 +245,6 @@ describe('Render partials contents on supported engines', () => {
 
             const { body } = await index(context);
             let cleanBody = body.replace(/\n/g, '').replace(/ {2,}/g, '');
-
-            if (['jsx', 'tsx'].includes(extension)) {
-                cleanBody = cleanBody.replace(
-                    /<([^>\s]+)([^>]*)\/>/g,
-                    '<$1$2 />',
-                );
-            }
-
             assert.strictEqual(cleanBody, expected);
         });
     });
