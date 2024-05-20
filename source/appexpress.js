@@ -829,7 +829,12 @@ class AppExpress {
                 return false;
             }
 
-            const compressedContent = await compressor.compress(buffer);
+            const compressedContent = await compressor.compress(
+                buffer,
+                this.#context.log,
+                this.#context.error,
+            );
+
             headers['content-encoding'] =
                 Array.from(compressorEncodings).join(', ');
 
