@@ -220,22 +220,26 @@ describe('Injected dependency validation', () => {
 describe('Render template contents', () => {
     const expected = `<h1>Welcome to AppExpress</h1>`;
 
-    ['ejs', 'hbs', 'pug', 'apw', 'md'].forEach((template) => {
-        it(`should return rendered content from ${template.toUpperCase()} template`, async () => {
-            const context = createContext({ path: `/engines/${template}` });
-            const { body } = await index(context);
-            assert.strictEqual(body, expected);
-        });
-    });
+    ['ejs', 'hbs', 'pug', 'apw', 'md', 'js', 'jsx', 'tsx'].forEach(
+        (template) => {
+            it(`should return rendered content from ${template.toUpperCase()} template`, async () => {
+                const context = createContext({ path: `/engines/${template}` });
+                const { body } = await index(context);
+                assert.strictEqual(body, expected);
+            });
+        },
+    );
 });
 
 describe('Render partials contents on supported engines', () => {
-    const expected = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>AppExpress</title></head><body><h1>AppExpress</h1><article><header><h3>Routing for Appwrite Functions!</h3></header><section>An express.js like framework for Appwrite Functions, enabling super-easy navigation!</section><footer><p>Written by: @ItzNotABug</p></footer></article></body></html>`;
+    const expected = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>AppExpress</title></head><body><h1>AppExpress</h1><article><header><h3>Routing for Appwrite Functions!</h3></header><section>An express.js like framework for Appwrite Functions, enabling super-easy navigation!</section><footer><p>Written by: @ItzNotABug</p></footer></article></body></html>`;
 
     [
         { engine: 'HBS', extension: 'hbs' },
         { engine: 'HBS', extension: 'html' },
         { engine: 'EJS', extension: 'ejs' },
+        { engine: 'JSX', extension: 'jsx' },
+        { engine: 'JSX', extension: 'tsx' },
     ].forEach(({ engine, extension }) => {
         it(`should render an article using ${engine.toUpperCase()} engine & ${extension.toUpperCase()} extension`, async () => {
             const context = createContext({
@@ -244,7 +248,15 @@ describe('Render partials contents on supported engines', () => {
             });
 
             const { body } = await index(context);
-            const cleanBody = body.replace(/\n/g, '').replace(/ {2,}/g, '');
+            let cleanBody = body.replace(/\n/g, '').replace(/ {2,}/g, '');
+
+            if (['jsx', 'tsx'].includes(extension)) {
+                cleanBody = cleanBody.replace(
+                    /<([^>\s]+)([^>]*)\/>/g,
+                    '<$1$2 />',
+                );
+            }
+
             assert.strictEqual(cleanBody, expected);
         });
     });

@@ -1,6 +1,6 @@
 {
   "name": "@itznotabug/appexpress",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "An `express.js` like framework for Appwrite Functions, enabling super-easy navigation!",
   "author": "@itznotabug",
   "type": "module",
@@ -24,11 +24,13 @@
     "mime-types": "2.1.35"
   },
   "devDependencies": {
-    "ejs": "3.1.10",
-    "express-hbs": "2.5.0",
     "pug": "3.0.2",
+    "ejs": "3.1.10",
+    "showdown": "2.1.0",
     "prettier": "3.2.5",
-    "showdown": "2.1.0"
+    "express-hbs": "2.5.0",
+    "@itznotabug/appexpress-jsx": "^0.0.4",
+    "@itznotabug/appexpress-nocookies": "^0.0.2"
   },
   "keywords": [
     "appwrite",
