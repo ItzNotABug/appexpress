@@ -40,7 +40,7 @@
  * @description Represents a function that allows a user to use a custom compression for HTTP responses.
  *
  * @property {Set<string>} encodings - The list of encodings that the handler supports.
- * @property {(buffer: Buffer) => Promise<Buffer>|Buffer} compress - Function to compress data.
+ * @property {(buffer: Buffer, log: (message: string) => void, error: (error: string) => void) => Promise<Buffer>|Buffer} compress - Function to compress data.
  */
 
 /**
