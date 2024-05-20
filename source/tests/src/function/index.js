@@ -31,17 +31,9 @@ express.static('public', [/^\..*env.*/i]);
 express.engine('ejs', ejs); // ejs
 express.engine('pug', pug); // pub
 
-// hbs
+// hbs, html
 express.engine(
-    'hbs',
-    hbs.express4({
-        partialsDir: path.join(AppExpress.baseDirectory, 'views/partials'),
-    }),
-);
-
-// html x hbs
-express.engine(
-    'html',
+    ['hbs', 'html'],
     hbs.express4({
         partialsDir: path.join(AppExpress.baseDirectory, 'views/partials'),
     }),

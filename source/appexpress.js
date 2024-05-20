@@ -209,28 +209,33 @@ class AppExpress {
      * })
      * ```
      *
-     * @param {string} ext - The file extension for the engine.
+     * @param {string|string[]} ext - The file extension[s] for the engine.
      * @param {any} engine - The view engine that will be used for rendering content.
      */
     engine(ext, engine) {
-        // `hbs`, `ejs`, `pug` have this variable,
-        // that is handled by express internally.
-        if (engine.hasOwnProperty('__express')) {
-            this.#engine.set(ext, engine.__express);
-        } else if (typeof engine === 'function') {
-            // `express-hbs` uses 4 params,
-            // but adjusts to 3 dynamically.
-            if (engine.length >= 3) this.#engine.set(ext, engine);
-            else {
-                throw new Error(
-                    `Your custom engine function must have exactly 3 methods (filePath, options, callback(error, content). Current length: ${engine.length}`,
-                );
-            }
-        } else {
+        // perform a quick validation!
+        if (!Array.isArray(ext) && typeof ext !== 'string') {
             throw new Error(
-                'This view engine may be unsupported as it seems to be missing the function required to render content.',
+                'The extension must be a string or an array of strings.',
             );
         }
+
+        // construct an array for looping around...
+        const extensions = Array.isArray(ext) ? ext : [ext];
+
+        extensions.forEach((extension) => {
+            // `hbs`, `ejs`, `pug` have this variable,
+            // that is handled by express internally.
+            if (engine.hasOwnProperty('__express')) {
+                this.#engine.set(extension, engine.__express);
+            } else if (typeof engine === 'function' && engine.length >= 3) {
+                this.#engine.set(extension, engine);
+            } else {
+                throw new Error(
+                    `Invalid engine: It must either have a '__express' property or be a function with at least 3 parameters. Received function length: ${engine.length}`,
+                );
+            }
+        });
     }
 
     /**
