@@ -37,14 +37,18 @@ class AppExpressResponse {
      *
      * **Also Note**: A duplicate header will be overridden with the value from the last call.
      *
-     * @param {Object<string, string|number>} headers - Custom headers to send back to the source.
+     * @param {Object<string, string|number|boolean>} headers - Custom headers to send back to the source.
      * @throws {Error} - If the header value is not a string or a number.
      */
     setHeaders(headers) {
         for (const [headerKey, value] of Object.entries(headers)) {
-            if (typeof value !== 'string' && typeof value !== 'number') {
+            if (
+                typeof value !== 'string' &&
+                typeof value !== 'number' &&
+                typeof value !== 'boolean'
+            ) {
                 throw new Error(
-                    `Custom headers only support values of type string or number. Provided type for key '${headerKey}': ${typeof value}.`,
+                    `Custom headers only support values of type string, number or a boolean. Provided type for key '${headerKey}': ${typeof value}.`,
                 );
             }
 
