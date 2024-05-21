@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import AppExpress from '../../../appexpress.js';
+import noCookies from '@itznotabug/appexpress-nocookies';
 
 /**
  * Sample repository for `DI`.
@@ -106,14 +107,7 @@ express.middleware({
 });
 
 // hard cookie remover
-express.middleware({
-    incoming: (request) => {
-        if (request.path === '/cookies') delete request.headers.cookie;
-    },
-    outgoing: (request, interceptor) => {
-        if (request.path === '/cookies') delete interceptor.headers.cookie;
-    },
-});
+express.middleware(noCookies.middleware);
 
 // override body content
 express.middleware({
