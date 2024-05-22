@@ -20,9 +20,11 @@
     "fresh": "0.5.2",
     "showdown": "2.1.0",
     "express-hbs": "2.5.0",
-    "@itznotabug/appexpress": "0.2.4",
+    "@itznotabug/appexpress": "0.2.5-rc01",
     "@itznotabug/appexpress-jsx": "^0.0.4",
-    "@itznotabug/appexpress-favicon": "^0.0.2"
+    "@itznotabug/appexpress-favicon": "^0.0.2",
+    "@itznotabug/appexpress-minifier": "^0.0.2",
+    "@itznotabug/appexpress-nocookies": "^0.0.2"
   },
   "devDependencies": {
     "prettier": "3.2.5",

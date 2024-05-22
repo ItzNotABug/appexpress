@@ -1,7 +1,8 @@
 import AppExpress from '@itznotabug/appexpress';
 
-// misc
+// engines, middlewares, etc.
 import setEngines from './utils/engines.js';
+import setMiddlewares from './utils/middlewares.js';
 
 // routes
 import indexRouteHandler from './routes/index.js';
@@ -11,23 +12,12 @@ import { registeredRoutes } from './utils/routes.js';
 import redirectRouteHandler from './routes/redirect.js';
 import versionsRouteHandler from './routes/versions.js';
 
-// middlewares
-import favIcon from '@itznotabug/appexpress-favicon';
-import { authUserForConsoleMiddleware } from './middlewares/auth.js';
-
 const express = new AppExpress();
 
 setEngines(express);
+setMiddlewares(express);
 express.views('views');
 express.static('public');
-
-// enabled by default.
-express.compression(true);
-
-// custom middlewares
-favIcon.options({ iconPath: 'icons/favicon.ico' });
-express.middleware(favIcon.middleware);
-express.middleware(authUserForConsoleMiddleware);
 
 // using router for management.
 express.use('/', indexRouteHandler);
@@ -42,7 +32,9 @@ express.get('/ping', (_, res) => res.send('pong'));
 express.post('/pong', (_, res) => res.send('ping'));
 express.all('/all', (req, res) => res.send('same for all'));
 express.get('/dump', (req, res) => res.json(JSON.parse(req.dump())));
-express.get('/routes', (_, res) => {
+express.get('/routes', (req, res) => {
+    const { excludeMinify = true } = req.query;
+    res.setHeaders({ 'exclude-minify': excludeMinify });
     res.send(JSON.stringify(registeredRoutes, null, 2));
 });
 

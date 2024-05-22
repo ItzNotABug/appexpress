@@ -15,14 +15,8 @@ const showdownConverter = () => {
 export default (express) => {
     express.engine('ejs', ejs);
     express.engine('pug', pug);
-
-    // we can club this to an array
-    // once appexpress is released!
-    express.engine('js', jsx.engine);
-    express.engine('jsx', jsx.engine);
-    express.engine('tsx', jsx.engine);
-
     express.engine('hbs', hbs.express4());
+    express.engine(['js', 'jsx', 'tsx'], jsx.engine);
 
     // a custom engine with showdown to render Markdown.
     express.engine('md', (filePath, options, callback) => {
