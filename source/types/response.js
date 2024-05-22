@@ -37,14 +37,18 @@ class AppExpressResponse {
      *
      * **Also Note**: A duplicate header will be overridden with the value from the last call.
      *
-     * @param {Object<string, string|number>} headers - Custom headers to send back to the source.
+     * @param {Object<string, string|number|boolean>} headers - Custom headers to send back to the source.
      * @throws {Error} - If the header value is not a string or a number.
      */
     setHeaders(headers) {
         for (const [headerKey, value] of Object.entries(headers)) {
-            if (typeof value !== 'string' && typeof value !== 'number') {
+            if (
+                typeof value !== 'string' &&
+                typeof value !== 'number' &&
+                typeof value !== 'boolean'
+            ) {
                 throw new Error(
-                    `Custom headers only support values of type string or number. Provided type for key '${headerKey}': ${typeof value}.`,
+                    `Custom headers only support values of type string, number or a boolean. Provided type for key '${headerKey}': ${typeof value}.`,
                 );
             }
 
@@ -64,7 +68,9 @@ class AppExpressResponse {
      * typically used when there's no need to send back any data to the source.
      */
     empty() {
-        this.#wrapReturnForSource(this.#response.empty());
+        this.#wrapReturnForSource(
+            this.#response.send('', 204, this.#customHeaders),
+        );
     }
 
     /**
@@ -252,20 +258,18 @@ class AppExpressResponse {
             ...this.#customHeaders,
         });
 
-        this.#wrapReturnForSource(promiseDataType, true);
+        this.#wrapReturnForSource(promiseDataType);
     }
 
     /**
      * Wrap the return value for source.
      *
      * @param {any} data - The data to wrap for safety.
-     * @param {boolean} promise=false - Whether the provided data is a `Promise`.
      */
-    #wrapReturnForSource(data, promise = false) {
+    #wrapReturnForSource(data) {
         this.#checkIfAlreadyPrepared();
 
         this.#response.dynamic = data;
-        this.#response.promise = promise;
     }
 
     /**

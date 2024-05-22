@@ -126,8 +126,14 @@ class AppExpress {
     /** @type AppwriteFunctionContext */
     #context;
 
-    /** @type RequestHandler[] */
-    #middlewares = [];
+    /** @type AppExpressRequest */
+    #request;
+
+    /** @type AppExpressResponse */
+    #response;
+
+    /** @type {{incoming: RequestHandler[], outgoing: ResponseHandler[]}} */
+    #middlewares = { incoming: [], outgoing: [] };
 
     /** @type InjectionRegistry */
     #dependencies = new Map();
@@ -156,8 +162,16 @@ class AppExpress {
      *
      * @type string
      */
-    get baseDirectory() {
+    static get baseDirectory() {
         return './src/function';
+    }
+
+    constructor() {
+        this.middleware({
+            outgoing: (_, interceptor) => {
+                this.#addPoweredByHeader(interceptor);
+            },
+        });
     }
 
     /**
@@ -195,28 +209,33 @@ class AppExpress {
      * })
      * ```
      *
-     * @param {string} ext - The file extension for the engine.
+     * @param {string|string[]} ext - The file extension[s] for the engine.
      * @param {any} engine - The view engine that will be used for rendering content.
      */
     engine(ext, engine) {
-        // `hbs`, `ejs`, `pug` have this variable,
-        // that is handled by express internally.
-        if (engine.hasOwnProperty('__express')) {
-            this.#engine.set(ext, engine.__express);
-        } else if (typeof engine === 'function') {
-            // `express-hbs` uses 4 params,
-            // but adjusts to 3 dynamically.
-            if (engine.length >= 3) this.#engine.set(ext, engine);
-            else {
-                throw new Error(
-                    `Your custom engine function must have exactly 3 methods (filePath, options, callback(error, content). Current length: ${engine.length}`,
-                );
-            }
-        } else {
+        // perform a quick validation!
+        if (!Array.isArray(ext) && typeof ext !== 'string') {
             throw new Error(
-                'This view engine may be unsupported as it seems to be missing the function required to render content.',
+                'The extension must be a string or an array of strings.',
             );
         }
+
+        // construct an array for looping around...
+        const extensions = Array.isArray(ext) ? ext : [ext];
+
+        extensions.forEach((extension) => {
+            // `hbs`, `ejs`, `pug` have this variable,
+            // that is handled by express internally.
+            if (engine.hasOwnProperty('__express')) {
+                this.#engine.set(extension, engine.__express);
+            } else if (typeof engine === 'function' && engine.length >= 3) {
+                this.#engine.set(extension, engine);
+            } else {
+                throw new Error(
+                    `Invalid engine: It must either have a '__express' property or be a function with at least 3 parameters. Received function length: ${engine.length}`,
+                );
+            }
+        });
     }
 
     /**
@@ -224,36 +243,42 @@ class AppExpress {
      *
      * **Note**: `request.params` are not available to middlewares due to no `pattern` awareness.
      *
-     * @param {RequestHandler} middleware - The middleware/request handler to add to the chain.
-     *
+     * @param {RequestHandler|{incoming: RequestHandler|undefined, outgoing: ResponseHandler|undefined}} middleware - The middleware/request handler to add to the chain.
      * @example
      * ```javascript
      * appExpress.middleware((request, response, log, error) => {
-     *      // do something with `request` object.
+     *   // do something with `request` object.
      *
-     *     log('this is a debug log');
-     *     error('this is an error log');
+     *   log('this is a debug log');
+     *   error('this is an error log');
      *
-     *     // throw an Error here to exit the middleware chain.
+     *   // throw an Error here to exit the middleware chain.
      * });
      * ```
      *
      * @example
      * ```javascript
-     * const loggingMiddleware = (request, response, log, error) => {
-     *     // do something with `request` object.
-     *
-     *     log('this is a debug log');
-     *     error('this is an error log');
-     *
-     *     response.send('logged') // this will exit the function.
-     * };
-     *
-     * appExpress.middleware(loggingMiddleware);
+     * appExpress.middleware({
+     *   incoming: (request, response, log, error) => {
+     *     // check request and response,
+     *     // or even return response if you like.
+     *   },
+     *   outgoing: (request, interceptor, log, error) => {
+     *     // you can modify the response here.
+     *     // interceptor.body, interceptor.statusCode, interceptor.headers.
+     *   }
+     * });
      * ```
      */
     middleware(middleware) {
-        this.#middlewares.push(middleware);
+        // preserve the previous behaviour.
+        if (typeof middleware === 'function') {
+            this.#middlewares.incoming.push(middleware);
+        } else if (typeof middleware === 'object') {
+            const { incoming, outgoing } = middleware;
+            if (incoming) this.#middlewares.incoming.push(incoming);
+            if (outgoing) this.#middlewares.outgoing.push(outgoing);
+        }
     }
 
     /**
@@ -495,7 +520,7 @@ class AppExpress {
      */
     #processDirectory(directory, exclude) {
         let filesMapping = {};
-        let directoryStack = [path.join(this.baseDirectory, directory)];
+        let directoryStack = [path.join(AppExpress.baseDirectory, directory)];
 
         while (directoryStack.length) {
             const currentPath = directoryStack.pop();
@@ -520,7 +545,7 @@ class AppExpress {
                 if (content.isDirectory()) {
                     directoryStack.push(fullPath);
                 } else if (content.isFile()) {
-                    let relativePath = `/${path.relative(this.baseDirectory, fullPath)}`;
+                    let relativePath = `/${path.relative(AppExpress.baseDirectory, fullPath)}`;
                     relativePath = relativePath.replace(`/${directory}`, '');
                     filesMapping[relativePath] = fullPath;
                 }
@@ -534,22 +559,20 @@ class AppExpress {
      * Handle incoming requests.
      */
     async #handleRequest() {
-        // appwrite context.
-        const context = this.#context;
-
         // build the request and response.
-        const request = new AppExpressRequest(context);
-        const response = new AppExpressResponse(context);
+        this.#request = new AppExpressRequest(this.#context);
+        this.#response = new AppExpressResponse(this.#context);
 
         // setup response handler.
-        context.req._dependencies = this.#dependencies;
-        context.res._baseDirectory = this.baseDirectory;
-        if (this.#views) context.res._views = this.#views;
-        if (this.#engine.size) context.res._engine = this.#engine;
+        this.#context.req._dependencies = this.#dependencies;
+        this.#context.res._baseDirectory = AppExpress.baseDirectory;
+
+        if (this.#views) this.#context.res._views = this.#views;
+        if (this.#engine.size) this.#context.res._engine = this.#engine;
 
         // find the route...
-        const method = request.method;
-        let routeHandler = this.#routes[method].get(request.path);
+        const method = this.#request.method;
+        let routeHandler = this.#routes[method].get(this.#request.path);
 
         if (!routeHandler) {
             for (const [path, handler] of this.#routes[method]) {
@@ -561,12 +584,12 @@ class AppExpress {
                     .replace(/\*/g, '.*');
 
                 const regex = new RegExp('^' + regexPattern + '$');
-                const match = request.path.match(regex);
+                const match = this.#request.path.match(regex);
 
                 if (match) {
                     const keys = path.match(/:\w+/g);
                     if (keys) {
-                        this.#extractParamsFromRoute(request.path, path);
+                        this.#extractParamsFromRoute(this.#request.path, path);
                     }
 
                     routeHandler = handler;
@@ -582,7 +605,7 @@ class AppExpress {
                     .replace(/\*/g, '.*');
 
                 const regex = new RegExp('^' + regexPattern + '$');
-                if (regex.test(request.path)) {
+                if (regex.test(this.#request.path)) {
                     routeHandler = handler;
                 }
             }
@@ -594,13 +617,18 @@ class AppExpress {
             if (!routeHandler) routeHandler = this.#routes.all.get('*');
         }
 
-        // execute the middlewares.
-        for (const middleware of this.#middlewares) {
+        // execute the incoming middlewares.
+        for (const middleware of this.#middlewares.incoming) {
             // allowing middlewares to return things,
             // example: a favicon handler or an auth check middleware.
-            await middleware(request, response, context.log, context.error);
+            await middleware(
+                this.#request,
+                this.#response,
+                this.#context.log,
+                this.#context.error,
+            );
 
-            // a middleware might return something.
+            // a middleware returned something.
             if (this.#contextHasReturn()) break;
         }
 
@@ -611,13 +639,18 @@ class AppExpress {
 
         if (routeHandler) {
             // execute the route handler.
-            await routeHandler(request, response, context.log, context.error);
+            await routeHandler(
+                this.#request,
+                this.#response,
+                this.#context.log,
+                this.#context.error,
+            );
 
             return await this.#processHandlerResult();
         } else {
             // mimic express.js and return a similar error.
             return this.#sendErrorResult(
-                `Cannot ${request.method.toUpperCase()} '${request.path}'.`,
+                `Cannot ${this.#request.method.toUpperCase()} '${this.#request.path}'.`,
             );
         }
     }
@@ -677,9 +710,9 @@ class AppExpress {
      * @returns {boolean}
      */
     #contextHasReturn() {
-        const context = this.#context;
         return (
-            context.res.dynamic !== null && context.res.dynamic !== undefined
+            this.#context.res.dynamic !== null &&
+            this.#context.res.dynamic !== undefined
         );
     }
 
@@ -689,39 +722,38 @@ class AppExpress {
      * @returns {*} The result from the `routeHandlerResult`.
      */
     async #processHandlerResult() {
-        // clear the dependencies.
+        // clear dependencies.
         this.#clearDependencies();
 
         if (this.#contextHasReturn()) {
-            const response = this.#context.res;
-            const result = response.dynamic;
+            const dynamic = this.#context.res.dynamic;
 
-            this.#addPoweredByHeader(result);
+            try {
+                /**
+                 * `await` the body because it `could` be a promise that
+                 * resolves to a html string for rendering content or a buffer.
+                 */
+                dynamic.body = await dynamic.body;
 
-            /**
-             * So what is happening here?
-             *
-             * Well, to allow a user directly call `render` without `await`,
-             * we save the `Promise` in the body and send it here for completion.
-             */
-            if (response.promise) {
-                try {
-                    result.body = await result.body;
-                    await this.#compress(result);
-                    return result;
-                } catch (error) {
-                    return this.#sendErrorResult(
-                        `Error rendering a view, ${error}`,
+                for (const interceptor of this.#middlewares.outgoing) {
+                    await interceptor(
+                        this.#request,
+                        dynamic,
+                        this.#context.log,
+                        this.#context.error,
                     );
                 }
-            } else {
-                await this.#compress(result);
-                return result;
+
+                // compress at the very end!
+                await this.#compress(dynamic);
+
+                return dynamic;
+            } catch (error) {
+                return this.#sendErrorResult(`${error}`);
             }
         } else {
-            const request = this.#context.req;
             return this.#sendErrorResult(
-                `Invalid return from route ${request.path}. Use 'response.empty()' if no response is expected.`,
+                `Invalid return from route ${this.#request.path}. Use 'response.empty()' if no response is expected.`,
             );
         }
     }
@@ -802,7 +834,12 @@ class AppExpress {
                 return false;
             }
 
-            const compressedContent = await compressor.compress(buffer);
+            const compressedContent = await compressor.compress(
+                buffer,
+                this.#context.log,
+                this.#context.error,
+            );
+
             headers['content-encoding'] =
                 Array.from(compressorEncodings).join(', ');
 

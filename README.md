@@ -21,6 +21,11 @@ integration, and more.
 For installation instructions and additional resources, please visit
 the [Wiki Page](https://github.com/ItzNotABug/appexpress/wiki).
 
+### Integrations
+
+Checkout the [appexpress-essentials](https://github.com/itznotabug/appexpress-essentials) repository for middlewares,
+view-engines and more.
+
 ### Live Action Demo
 
 Discover AppExpress in action through a demo:

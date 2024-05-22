@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import AppExpress from '../../../appexpress.js';
+import noCookies from '@itznotabug/appexpress-nocookies';
 
 /**
  * Sample repository for `DI`.
@@ -31,19 +32,11 @@ express.static('public', [/^\..*env.*/i]);
 express.engine('ejs', ejs); // ejs
 express.engine('pug', pug); // pub
 
-// hbs
+// hbs, html
 express.engine(
-    'hbs',
+    ['hbs', 'html'],
     hbs.express4({
-        partialsDir: path.join(express.baseDirectory, 'views/partials'),
-    }),
-);
-
-// html x hbs
-express.engine(
-    'html',
-    hbs.express4({
-        partialsDir: path.join(express.baseDirectory, 'views/partials'),
+        partialsDir: path.join(AppExpress.baseDirectory, 'views/partials'),
     }),
 );
 
@@ -104,6 +97,23 @@ express.middleware((request, response) => {
             404,
         );
     }
+});
+
+// intercepting response
+express.middleware({
+    outgoing: (_, interceptor) => {
+        interceptor.headers['X-Server-Powered-By'] = 'Appwrite x Swoole';
+    },
+});
+
+// hard cookie remover
+express.middleware(noCookies.middleware);
+
+// override body content
+express.middleware({
+    outgoing: (request, interceptor) => {
+        if (request.path === '/body_override') interceptor.body = 'outgoing';
+    },
 });
 
 // directs
@@ -187,6 +197,13 @@ express.get('/engines/article', (request, response) => {
 express.get('/error/multi-return', (_, response) => {
     response.send('ok');
     response.send('ok');
+});
+
+express.get('/outgoing', (_, res) => res.empty());
+express.get('/body_override', (_, res) => res.empty());
+express.get('/cookies', (_, res) => {
+    res.setHeaders({ cookie: crypto.randomUUID() });
+    res.empty();
 });
 
 // Appwrite Function Entrypoint!
