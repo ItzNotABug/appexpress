@@ -6,7 +6,7 @@ const METHODS = {
     OPTIONS: 'OPTIONS',
 };
 
-const HOMEPAGE_SUBPATHS = ['/robots.txt', '/favicon.ico'];
+const HOMEPAGE_SUBPATHS = ['/robots.txt', '/favicon.ico', '/styles.css'];
 
 function addIfNotEmpty(target, key, value) {
     if (value && Object.keys(value).length > 0) {
@@ -30,7 +30,17 @@ export const registeredRoutes = {
         subPaths: HOMEPAGE_SUBPATHS,
         query: {
             type: 'string',
-            acceptable: ['md', 'ejs', 'hbs', 'pug', 'html', 'string'],
+            values: [
+                'js',
+                'md',
+                'ejs',
+                'hbs',
+                'pug',
+                'jsx',
+                'tsx',
+                'html',
+                'string',
+            ],
         },
     }),
     '/all': createRoute([

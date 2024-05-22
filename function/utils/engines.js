@@ -4,6 +4,7 @@ import ejs from 'ejs';
 import pug from 'pug';
 import hbs from 'express-hbs';
 import showdown from 'showdown';
+import jsx from '@itznotabug/appexpress-jsx';
 
 const showdownConverter = () => {
     const converter = new showdown.Converter();
@@ -15,6 +16,7 @@ export default (express) => {
     express.engine('ejs', ejs);
     express.engine('pug', pug);
     express.engine('hbs', hbs.express4());
+    express.engine(['js', 'jsx', 'tsx'], jsx.engine);
 
     // a custom engine with showdown to render Markdown.
     express.engine('md', (filePath, options, callback) => {
