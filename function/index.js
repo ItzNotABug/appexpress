@@ -12,21 +12,21 @@ import redirectRouteHandler from './routes/redirect.js';
 import versionsRouteHandler from './routes/versions.js';
 
 // middlewares
-import { favIconMiddleware } from './middlewares/favicon.js';
+import favIcon from '@itznotabug/appexpress-favicon';
 import { authUserForConsoleMiddleware } from './middlewares/auth.js';
 
 const express = new AppExpress();
 
 setEngines(express);
 express.views('views');
-// excluding the favicon cz we have a middleware for that.
-express.static('public', ['favicon.ico']);
+express.static('public');
 
 // enabled by default.
 express.compression(true);
 
 // custom middlewares
-express.middleware(favIconMiddleware);
+favIcon.options({ iconPath: 'icons/favicon.ico' });
+express.middleware(favIcon.middleware);
 express.middleware(authUserForConsoleMiddleware);
 
 // using router for management.

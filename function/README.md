@@ -9,7 +9,7 @@ This is an Appwrite Function demonstrating the `AppExpress` framework.
 
 ## Building
 
-`cd` in to `functions` directory & run below to create a `code.tar.gz` :
+`cd` in to `function` directory & run below to create a `code.tar.gz` :
 
 ```shell
 tar --exclude code.tar.gz --exclude node_modules -czf code.tar.gz .
@@ -20,7 +20,7 @@ Note: You can also use `appwrite-cli` to push this function directly.
 Finally, create a deployment if uploading manually, below are the config details -
 
 1. Endpoint - `index.js`
-2. Build Commands - `npm install`
+2. Build Commands - `npm install --omit=dev`
 
 ## Live Function Testing
 

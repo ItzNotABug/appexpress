@@ -9,27 +9,25 @@ const indexContent =
 router.get('/', (req, res) => {
     const { type } = req.query;
     switch (type) {
-        default:
-            res.html(indexContent);
-            return;
-        case 'string':
-            res.html(indexContent);
-            return;
         case 'html':
             res.sendFile('index.html');
-            return;
+            break;
+        case 'string':
+        default:
+            res.send(indexContent, 200, 'text/html');
+            break;
+        case 'js':
+        case 'jsx':
+        case 'tsx':
         case 'ejs':
-            res.render('index.ejs', buildContent('ejs'));
-            return;
         case 'hbs':
-            res.render('index.hbs', buildContent('hbs'));
-            return;
         case 'pug':
-            res.render('index.pug', buildContent('pug'));
-            return;
         case 'md':
-            res.render('index.md', buildContent('markdown'));
-            return;
+            res.render(
+                `index.${type}`,
+                buildContent(type === 'md' ? 'markdown' : type),
+            );
+            break;
     }
 });
 

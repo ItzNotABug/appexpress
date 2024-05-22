@@ -30,7 +30,17 @@ export const registeredRoutes = {
         subPaths: HOMEPAGE_SUBPATHS,
         query: {
             type: 'string',
-            acceptable: ['md', 'ejs', 'hbs', 'pug', 'html', 'string'],
+            values: [
+                'js',
+                'md',
+                'ejs',
+                'hbs',
+                'pug',
+                'jsx',
+                'tsx',
+                'html',
+                'string',
+            ],
         },
     }),
     '/all': createRoute([
