@@ -5,15 +5,23 @@ import noCookies from '@itznotabug/appexpress-nocookies';
 import { authUserForConsoleMiddleware } from '../middlewares/auth.js';
 
 export default (express) => {
+    logEverything(express);
     cacheEverything(express);
     favIconMiddleware(express);
     minifierMiddleware(express);
     express.middleware(noCookies.middleware);
     express.middleware(authUserForConsoleMiddleware);
+};
 
+const logEverything = (express) => {
     express.middleware((request) => {
+        const url = request.url;
+
         // this log won't be considered unsupported!
-        console.log(`Requested Path: ${request.path}`);
+        console.log(`Requested Path: ${url}`);
+        if (apiCache.hasCache(url)) {
+            console.log(`This url (${url}) is cached!`);
+        }
     });
 };
 
