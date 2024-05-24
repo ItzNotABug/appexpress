@@ -4,7 +4,7 @@ const router = new AppExpress.Router();
 router.get('/', (_, res) => {
     const start = process.hrtime();
     const healthcheck = health(start);
-    res.send(healthcheck);
+    res.json(healthcheck);
 });
 
 export default router;
