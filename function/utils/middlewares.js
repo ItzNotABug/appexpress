@@ -17,7 +17,7 @@ const logEverything = (express) => {
     express.middleware((request) => {
         const url = request.url;
 
-        // this log won't be considered unsupported!
+        // these won't be marked unsupported!
         console.log(`Requested Path: ${url}`);
         if (apiCache.hasCache(url)) {
             console.log(`This url (${url}) is cached!`);
