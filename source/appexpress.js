@@ -556,6 +556,21 @@ class AppExpress {
     }
 
     /**
+     * Override console logging to avoid seeing below message in executions logs on console -
+     *
+     * ```text
+     * ----------------------------------------------------------------------------
+     * Unsupported logs detected. Use context.log() or context.error() for logging.
+     * ----------------------------------------------------------------------------
+     * ```
+     */
+    #overrideConsoleLogging() {
+        const log = this.#context.log;
+        console.error = this.#context.error;
+        console.log = console.warn = console.info = console.debug = log;
+    }
+
+    /**
      * Handle incoming requests.
      */
     async #handleRequest() {
@@ -899,6 +914,9 @@ class AppExpress {
     async attach(context) {
         // appwrite context.
         this.#context = context;
+
+        // override console logging.
+        this.#overrideConsoleLogging();
 
         // attach AppExpress to Function.
         return await this.#handleRequest();
