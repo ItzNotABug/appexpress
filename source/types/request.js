@@ -161,9 +161,9 @@ class AppExpressRequest {
     /**
      * Get the function trigger type.
      *
-     * Can be `event`, `http` or `scheduled`.
+     * Can be `event`, `http` or `schedule`.
      *
-     * @returns {'event'|'http'|'scheduled'} The trigger type.
+     * @returns {'event'|'http'|'schedule'} The trigger type.
      */
     get triggeredType() {
         return this.headers['x-appwrite-trigger'];
