@@ -1,6 +1,6 @@
 {
   "name": "@itznotabug/appexpress",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "An `express.js` like framework for Appwrite Functions, enabling super-easy navigation!",
   "author": "@itznotabug",
   "type": "module",
