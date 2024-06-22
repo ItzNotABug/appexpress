@@ -1,3 +1,4 @@
+import cors from '@itznotabug/appexpress-cors';
 import favIcon from '@itznotabug/appexpress-favicon';
 import apiCache from '@itznotabug/appexpress-apicache';
 import minifier from '@itznotabug/appexpress-minifier';
@@ -9,6 +10,7 @@ export default (express) => {
     cacheEverything(express);
     favIconMiddleware(express);
     minifierMiddleware(express);
+    express.middleware(cors.middleware);
     express.middleware(noCookies.middleware);
     express.middleware(authUserForConsoleMiddleware);
 };
