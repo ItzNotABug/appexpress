@@ -1,6 +1,6 @@
 {
   "name": "appexpress-function",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "A demo function to showcase `appexpress` framework.",
   "author": "@itznotabug",
   "type": "module",
