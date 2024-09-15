@@ -123,7 +123,12 @@ class AppExpressResponse {
      * @deprecated Use `text` instead.
      */
     send(content, statusCode = 200, contentType = 'text/plain') {
-        this.text(content, statusCode, contentType);
+        this.#wrapReturnForSource(
+            this.#response.send(content, statusCode, {
+                'content-type': contentType,
+                ...this.#customHeaders
+            })
+        );
     }
 
     /**
