@@ -2,6 +2,7 @@
 
 import path from 'path';
 import fs from 'fs/promises';
+import mime from 'mime-types';
 
 /**
  * Represents the response object for returning, exiting the function.
@@ -48,7 +49,7 @@ class AppExpressResponse {
                 typeof value !== 'boolean'
             ) {
                 throw new Error(
-                    `Custom headers only support values of type string, number or a boolean. Provided type for key '${headerKey}': ${typeof value}.`,
+                    `Custom headers only support values of type string, number or a boolean. Provided type for key '${headerKey}': ${typeof value}.`
                 );
             }
 
@@ -69,7 +70,7 @@ class AppExpressResponse {
      */
     empty() {
         this.#wrapReturnForSource(
-            this.#response.send('', 204, this.#customHeaders),
+            this.#response.text('', 204, this.#customHeaders)
         );
     }
 
@@ -81,7 +82,7 @@ class AppExpressResponse {
      */
     json(data, statusCode = 200) {
         this.#wrapReturnForSource(
-            this.#response.json(data, statusCode, this.#customHeaders),
+            this.#response.json(data, statusCode, this.#customHeaders)
         );
     }
 
@@ -92,7 +93,7 @@ class AppExpressResponse {
      */
     redirect(url) {
         this.#wrapReturnForSource(
-            this.#response.redirect(url, 301, this.#customHeaders),
+            this.#response.redirect(url, 301, this.#customHeaders)
         );
     }
 
@@ -103,41 +104,53 @@ class AppExpressResponse {
      * @param {number} statusCode=200 - The HTTP status code.
      * @param {string} contentType='text/plain' - The content type of the response.
      */
-    send(content, statusCode = 200, contentType = 'text/plain') {
+    text(content, statusCode = 200, contentType = 'text/plain') {
         this.#wrapReturnForSource(
-            this.#response.send(content, statusCode, {
+            this.#response.text(content, statusCode, {
                 'content-type': contentType,
-                ...this.#customHeaders,
-            }),
+                ...this.#customHeaders
+            })
         );
     }
 
     /**
-     * Send an HTML response back to the source which is rendered for the user.
+     * Send a response with a specific content type and status code.
      *
-     * @param {string} html - The HTML string to send.
+     * @param {any} content - The response body to send.
      * @param {number} statusCode=200 - The HTTP status code.
+     * @param {string} contentType='text/plain' - The content type of the response.
      *
-     * @deprecated - Use `send(content, statusCode, 'text/html')` instead.\
-     * This method will be removed in the upcoming versions.
+     * @deprecated Use `text` instead.
      */
-    html(html, statusCode = 200) {
-        this.send(html, statusCode, 'text/html');
+    send(content, statusCode = 200, contentType = 'text/plain') {
+        this.text(content, statusCode, contentType);
     }
 
     /**
-     * Send HTML content from a file as a response back to the source which is rendered for the user.
+     * Send content from a file as a response back to the source.
      *
-     * @param {string} filePath - The file path to read HTML from.
+     * @param {Buffer|string} contentOrPath - The file content or the path.
      * @param {number} statusCode=200 - The HTTP status code to send.
+     * @param {string|null} contentType='text/plain' - The content type of the response. If passing file path, content type is auto-decided.
      */
-    sendFile(filePath, statusCode = 200) {
+    binary(contentOrPath, statusCode = 200, contentType = 'text/plain') {
         try {
-            const promise = this.#readFile(filePath);
-            this.#wrapForPromise(promise, statusCode);
+            let promise;
+
+            if (typeof contentOrPath === 'string') {
+                // file path > read its content.
+                contentType = mime.lookup(contentOrPath) || contentType;
+                promise = this.#readFile(contentOrPath);
+            } else {
+                // direct read the content
+                promise = new Promise((resolve) => resolve(contentOrPath));
+            }
+
+            this.#customHeaders['content-type'] = contentType;
+            this.#wrapForPromise(promise, statusCode, true);
         } catch (error) {
             this.#context.error(`Failed to read HTML file: ${error}`);
-            this.send('Internal Server Error', 500, 'text/plain');
+            this.text('Internal Server Error', 500, 'text/plain');
         }
     }
 
@@ -163,7 +176,7 @@ class AppExpressResponse {
                 usablePath = `${filePath}.${fileExtension}`;
             } else {
                 throw new Error(
-                    'You seem to have set multiple view engines; please use file paths with extension.',
+                    'You seem to have set multiple view engines; please use file paths with extension.'
                 );
             }
         } else {
@@ -179,16 +192,17 @@ class AppExpressResponse {
             options.settings = options.settings || {};
 
             const promise = new Promise((resolve, reject) => {
-                engineSettings(usablePath, options, function (error, content) {
+                engineSettings(usablePath, options, function(error, content) {
                     if (error) reject(error);
                     else resolve(content);
                 });
             });
 
+            customElements['content-type'] = 'text/html';
             this.#wrapForPromise(promise, statusCode);
         } catch (error) {
             this.#context.error(`Failed to render content: ${error}`);
-            this.send('Internal Server Error', 500, 'text/plain');
+            this.text('Internal Server Error', 500, 'text/plain');
         }
     }
 
@@ -242,7 +256,7 @@ class AppExpressResponse {
         return path.join(
             process.cwd(),
             `${this.#response._baseDirectory}`,
-            `${append}`,
+            `${append}`
         );
     }
 
@@ -251,12 +265,21 @@ class AppExpressResponse {
      *
      * @param {Promise<any>} promise - Promise that returns a html string on completion.
      * @param {number} statusCode=200 - The HTTP status code.
+     * @param {boolean} isBinary=false - Whether the content/promise has a binary type.
      */
-    #wrapForPromise(promise, statusCode) {
-        const promiseDataType = this.#response.send(promise, statusCode, {
-            'content-type': 'text/html',
-            ...this.#customHeaders,
-        });
+    #wrapForPromise(promise, statusCode, isBinary = false) {
+        let responseMethod = isBinary ? 'binary' : 'text';
+        /**
+         * fun-fact: `text` uses `binary` internally!
+         *
+         * text: `this.binary((Buffer.from(body, "utf8"), statusCode, headers).`
+         */
+        let promiseDataType = this.#response[responseMethod](
+            promise,
+            statusCode, {
+                ...this.#customHeaders
+            }
+        );
 
         this.#wrapReturnForSource(promiseDataType);
     }
@@ -281,7 +304,7 @@ class AppExpressResponse {
         if (this.#response.dynamic) {
             const error = new Error(
                 'A response has already been prepared. Cannot initiate another response. ' +
-                    'Did you call response methods like `response.send` or `response.json` multiple times in the same request handler?',
+                'Did you call response methods like `response.send` or `response.json` multiple times in the same request handler?'
             );
             error.stack = '';
             throw error;

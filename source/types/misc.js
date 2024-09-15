@@ -22,7 +22,7 @@
  * @property {string|Buffer|object} body - The processed response body.\
  * **Note**: The contents of the body are not compressed yet.
  * @property {number} statusCode - The statusCode of the response.
- * @property {Object<string, string|number>} headers - The headers added to the response.
+ * @property {Object<string, string|number|boolean>} headers - The headers added to the response.
  */
 
 /**
