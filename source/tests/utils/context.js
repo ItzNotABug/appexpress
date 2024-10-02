@@ -26,6 +26,25 @@ export const createContext = ({
          * all methods except `empty()` support `statusCode` & `headers` but they are managed internally.
          */
         res: {
+            text: function (body, statusCode = 200, headers = {}) {
+                // open-runtimes uses below logic, but it fails our tests -
+                // return this.binary(Buffer.from(body, "utf8"), statusCode, headers);
+                return {
+                    body: body,
+                    statusCode: statusCode,
+                    headers: headers,
+                };
+            },
+            binary: function (bytes, statusCode = 200, headers = {}) {
+                return {
+                    body: bytes,
+                    statusCode: statusCode,
+                    headers: headers,
+                };
+            },
+            /**
+             * @deprecated Use `text` instead.
+             */
             send: function (body, statusCode = 200, headers = {}) {
                 return {
                     body: body,

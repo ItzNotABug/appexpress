@@ -49,7 +49,7 @@ class AppExpressResponse {
                 typeof value !== 'boolean'
             ) {
                 throw new Error(
-                    `Custom headers only support values of type string, number or a boolean. Provided type for key '${headerKey}': ${typeof value}.`
+                    `Custom headers only support values of type string, number or a boolean. Provided type for key '${headerKey}': ${typeof value}.`,
                 );
             }
 
@@ -70,7 +70,7 @@ class AppExpressResponse {
      */
     empty() {
         this.#wrapReturnForSource(
-            this.#response.text('', 204, this.#customHeaders)
+            this.#response.text('', 204, this.#customHeaders),
         );
     }
 
@@ -82,7 +82,7 @@ class AppExpressResponse {
      */
     json(data, statusCode = 200) {
         this.#wrapReturnForSource(
-            this.#response.json(data, statusCode, this.#customHeaders)
+            this.#response.json(data, statusCode, this.#customHeaders),
         );
     }
 
@@ -93,7 +93,7 @@ class AppExpressResponse {
      */
     redirect(url) {
         this.#wrapReturnForSource(
-            this.#response.redirect(url, 301, this.#customHeaders)
+            this.#response.redirect(url, 301, this.#customHeaders),
         );
     }
 
@@ -108,8 +108,8 @@ class AppExpressResponse {
         this.#wrapReturnForSource(
             this.#response.text(content, statusCode, {
                 'content-type': contentType,
-                ...this.#customHeaders
-            })
+                ...this.#customHeaders,
+            }),
         );
     }
 
@@ -126,8 +126,8 @@ class AppExpressResponse {
         this.#wrapReturnForSource(
             this.#response.send(content, statusCode, {
                 'content-type': contentType,
-                ...this.#customHeaders
-            })
+                ...this.#customHeaders,
+            }),
         );
     }
 
@@ -181,7 +181,7 @@ class AppExpressResponse {
                 usablePath = `${filePath}.${fileExtension}`;
             } else {
                 throw new Error(
-                    'You seem to have set multiple view engines; please use file paths with extension.'
+                    'You seem to have set multiple view engines; please use file paths with extension.',
                 );
             }
         } else {
@@ -197,13 +197,13 @@ class AppExpressResponse {
             options.settings = options.settings || {};
 
             const promise = new Promise((resolve, reject) => {
-                engineSettings(usablePath, options, function(error, content) {
+                engineSettings(usablePath, options, function (error, content) {
                     if (error) reject(error);
                     else resolve(content);
                 });
             });
 
-            customElements['content-type'] = 'text/html';
+            this.#customHeaders['content-type'] = 'text/html';
             this.#wrapForPromise(promise, statusCode);
         } catch (error) {
             this.#context.error(`Failed to render content: ${error}`);
@@ -261,7 +261,7 @@ class AppExpressResponse {
         return path.join(
             process.cwd(),
             `${this.#response._baseDirectory}`,
-            `${append}`
+            `${append}`,
         );
     }
 
@@ -281,9 +281,10 @@ class AppExpressResponse {
          */
         let promiseDataType = this.#response[responseMethod](
             promise,
-            statusCode, {
-                ...this.#customHeaders
-            }
+            statusCode,
+            {
+                ...this.#customHeaders,
+            },
         );
 
         this.#wrapReturnForSource(promiseDataType);
@@ -309,7 +310,7 @@ class AppExpressResponse {
         if (this.#response.dynamic) {
             const error = new Error(
                 'A response has already been prepared. Cannot initiate another response. ' +
-                'Did you call response methods like `response.send` or `response.json` multiple times in the same request handler?'
+                    'Did you call response methods like `response.send` or `response.json` multiple times in the same request handler?',
             );
             error.stack = '';
             throw error;

@@ -309,6 +309,27 @@ describe('Public static resource handling', () => {
     });
 });
 
+describe('Request containing a binary file', () => {
+    it('should return the same binary file contents', async () => {
+        const rocket = `${publicDir}/static/images/rocket.png`;
+        const rocketContent = fs.readFileSync(rocket);
+
+        const context = createContext({
+            method: 'post',
+            path: '/binary',
+            bodyBinary: rocketContent,
+            headers: {
+                'content-type': 'image/png',
+            },
+        });
+
+        const { body, statusCode, headers } = await index(context);
+        assert.deepStrictEqual(body, rocketContent);
+        assert.deepStrictEqual(statusCode, 200);
+        assert.deepStrictEqual(headers['content-type'], 'image/png');
+    });
+});
+
 describe('Multiple returns error validation', () => {
     it(`should return an error due to multiple response.* call on a route`, async () => {
         let message;

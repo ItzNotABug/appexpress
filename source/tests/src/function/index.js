@@ -206,5 +206,15 @@ express.get('/cookies', (_, res) => {
     res.empty();
 });
 
+express.post('/binary', (request, response) => {
+    const binaryFileContents = request.bodyBinary;
+    const contentTypeHeader = request.headers['content-type'];
+    if (binaryFileContents) {
+        return response.binary(binaryFileContents, 200, contentTypeHeader);
+    } else {
+        return response.text('Internal Server Error', 500);
+    }
+});
+
 // Appwrite Function Entrypoint!
 export default async (context) => await express.attach(context);
