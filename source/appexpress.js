@@ -447,7 +447,7 @@ class AppExpress {
                     }
 
                     const fileContent = fs.readFileSync(requestedFile, options);
-                    response.send(fileContent, 200, contentType);
+                    response.text(fileContent, 200, contentType);
                 }
             });
         }

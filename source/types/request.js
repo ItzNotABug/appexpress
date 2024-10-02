@@ -36,9 +36,29 @@ class AppExpressRequest {
      * Gets the raw body of the request if present.
      *
      * @returns {string|undefined} The raw request body or undefined if not set.
+     * @deprecated Use `bodyText` instead.
      */
     get bodyRaw() {
-        return this.#request.bodyRaw;
+        return this.bodyText;
+    }
+
+    /**
+     * Gets the raw body of the request as text if present.
+     *
+     * @returns {string|undefined} The raw request body or undefined if not set.
+     */
+    get bodyText() {
+        return this.#request.bodyText;
+    }
+
+    /**
+     * Gets the parsed body of the request if present.
+     *
+     * @returns {Object|{}} The request body or empty if not set.
+     * @deprecated Use `bodyJson` instead.
+     */
+    get body() {
+        return this.bodyJson;
     }
 
     /**
@@ -46,7 +66,7 @@ class AppExpressRequest {
      *
      * @returns {Object|{}} The request body or empty if not set.
      */
-    get body() {
+    get bodyJson() {
         if (typeof this.#request.body === 'string' && this.#request.body) {
             try {
                 return JSON.parse(this.#request.body);
@@ -57,6 +77,15 @@ class AppExpressRequest {
             }
         }
         return this.#request.body || {};
+    }
+
+    /**
+     * Gets the binary content/file from the request if present.
+     *
+     * @returns {Buffer|any} The binary content if available.
+     */
+    get bodyBinary() {
+        return this.#request.bodyBinary;
     }
 
     /**
@@ -244,8 +273,9 @@ class AppExpressRequest {
                 queryString: this.queryString,
                 query: this.query,
                 headers: this.headers,
-                body: this.body,
+                body: this.bodyJson,
                 params: this.params,
+                binary: !!this.bodyBinary,
 
                 // Operational Details
                 triggeredType: this.triggeredType,

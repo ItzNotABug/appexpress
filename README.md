@@ -16,6 +16,9 @@
 simplifies creating server-like functionalities through an intuitive API that simplifies routing, middleware
 integration, and more.
 
+> [!NOTE]
+> **This package is compatible with Appwrite server version 1.6.x.**
+
 ### Documentation
 
 For installation instructions and additional resources, please visit
