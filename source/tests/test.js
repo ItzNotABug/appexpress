@@ -307,6 +307,17 @@ describe('Public static resource handling', () => {
         const { body } = await index(context);
         assert.deepStrictEqual(body, jsContent);
     });
+
+    it('should return content from an image file as binary', async () => {
+        const rocket = `${publicDir}/static/images/rocket.png`;
+        const rocketContent = fs.readFileSync(rocket);
+
+        const context = createContext({
+            path: '/static/images/rocket.png',
+        });
+        const { body } = await index(context);
+        assert.deepStrictEqual(body, rocketContent);
+    });
 });
 
 describe('Request containing a binary file', () => {
