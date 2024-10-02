@@ -447,7 +447,12 @@ class AppExpress {
                     }
 
                     const fileContent = fs.readFileSync(requestedFile, options);
-                    response.text(fileContent, 200, contentType);
+
+                    if (options.encoding === 'utf8') {
+                        response.text(fileContent, 200, contentType);
+                    } else {
+                        response.binary(fileContent, 200, contentType);
+                    }
                 }
             });
         }
