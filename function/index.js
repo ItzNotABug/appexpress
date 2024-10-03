@@ -28,14 +28,24 @@ express.use('/users/:id/:transaction', paramsRouteHandler);
 
 express.get('/empty', (_, res) => res.empty());
 express.get('/console', (_, res) => res.empty());
-express.get('/ping', (_, res) => res.send('pong'));
-express.post('/pong', (_, res) => res.send('ping'));
-express.all('/all', (req, res) => res.send('same for all'));
+express.get('/ping', (_, res) => res.text('pong'));
+express.post('/pong', (_, res) => res.text('ping'));
+express.all('/all', (req, res) => res.text('same for all'));
 express.get('/dump', (req, res) => res.json(JSON.parse(req.dump())));
 express.get('/routes', (req, res) => {
     const { excludeMinify = true } = req.query;
     res.setHeaders({ 'exclude-minify': excludeMinify });
-    res.send(JSON.stringify(registeredRoutes, null, 2));
+    res.text(JSON.stringify(registeredRoutes, null, 2));
+});
+
+express.post('/binary', (request, response) => {
+    const binary = request.bodyBinary;
+    const contentType = request.headers['content-type'];
+    if (binary && binary.length && binary.length > 0) {
+        response.binary(binary, 200, contentType);
+    } else {
+        response.text('No binary content was detected', 400);
+    }
 });
 
 // Appwrite Function Entrypoint!
