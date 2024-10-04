@@ -58,6 +58,7 @@ export const registeredRoutes = {
     '/health': createRoute([METHODS.GET]),
     '/ping': createRoute([METHODS.GET]),
     '/pong': createRoute([METHODS.POST]),
+    '/binary': createRoute([METHODS.POST]),
     '/redirect': createRoute([METHODS.GET], {
         query: { redirect_url: 'string' },
     }),
