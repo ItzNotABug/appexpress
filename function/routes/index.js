@@ -10,11 +10,11 @@ router.get('/', (req, res) => {
     const { type } = req.query;
     switch (type) {
         case 'html':
-            res.sendFile('index.html');
+            res.binary('index.html');
             break;
         case 'string':
         default:
-            res.send(indexContent, 200, 'text/html');
+            res.text(indexContent, 200, 'text/html');
             break;
         case 'js':
         case 'jsx':
