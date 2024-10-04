@@ -27,13 +27,11 @@ export const createContext = ({
          */
         res: {
             text: function (body, statusCode = 200, headers = {}) {
-                // open-runtimes uses below logic, but it fails our tests -
-                // return this.binary(Buffer.from(body, "utf8"), statusCode, headers);
-                return {
-                    body: body,
-                    statusCode: statusCode,
-                    headers: headers,
-                };
+                return this.binary(
+                    Buffer.from(body, 'utf8').toString(),
+                    statusCode,
+                    headers,
+                );
             },
             binary: function (bytes, statusCode = 200, headers = {}) {
                 return {
