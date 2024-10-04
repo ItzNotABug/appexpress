@@ -22,11 +22,11 @@
     "express-hbs": "2.5.0",
     "@itznotabug/appexpress": "^1.6.2",
     "@itznotabug/appexpress-jsx": "^0.0.4",
-    "@itznotabug/appexpress-cors": "^0.0.1",
-    "@itznotabug/appexpress-favicon": "^0.0.2",
-    "@itznotabug/appexpress-minifier": "^0.0.4",
-    "@itznotabug/appexpress-apicache": "^0.0.3",
-    "@itznotabug/appexpress-nocookies": "^0.0.3"
+    "@itznotabug/appexpress-cors": "^0.0.2",
+    "@itznotabug/appexpress-favicon": "^0.0.3",
+    "@itznotabug/appexpress-minifier": "^0.0.5",
+    "@itznotabug/appexpress-apicache": "^0.0.4",
+    "@itznotabug/appexpress-nocookies": "^0.0.4"
   },
   "devDependencies": {
     "prettier": "3.2.5",
