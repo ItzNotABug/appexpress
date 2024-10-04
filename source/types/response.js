@@ -152,7 +152,7 @@ class AppExpressResponse {
             }
 
             this.#customHeaders['content-type'] = contentType;
-            this.#wrapForPromise(promise, statusCode, true);
+            this.#wrapForPromise(promise, statusCode);
         } catch (error) {
             this.#context.error(`Failed to read HTML file: ${error}`);
             this.text('Internal Server Error', 500, 'text/plain');
@@ -270,22 +270,11 @@ class AppExpressResponse {
      *
      * @param {Promise<any>} promise - Promise that returns a html string on completion.
      * @param {number} statusCode=200 - The HTTP status code.
-     * @param {boolean} isBinary=false - Whether the content/promise has a binary type.
      */
-    #wrapForPromise(promise, statusCode, isBinary = false) {
-        let responseMethod = isBinary ? 'binary' : 'text';
-        /**
-         * fun-fact: `text` uses `binary` internally!
-         *
-         * text: `this.binary((Buffer.from(body, "utf8"), statusCode, headers).`
-         */
-        let promiseDataType = this.#response[responseMethod](
-            promise,
-            statusCode,
-            {
-                ...this.#customHeaders,
-            },
-        );
+    #wrapForPromise(promise, statusCode) {
+        let promiseDataType = this.#response.binary(promise, statusCode, {
+            ...this.#customHeaders,
+        });
 
         this.#wrapReturnForSource(promiseDataType);
     }
