@@ -1,18 +1,18 @@
 import cors from '@itznotabug/appexpress-cors';
 import favIcon from '@itznotabug/appexpress-favicon';
-import apiCache from '@itznotabug/appexpress-apicache';
 import minifier from '@itznotabug/appexpress-minifier';
+import * as cache from '@itznotabug/appexpress-apicache';
 import noCookies from '@itznotabug/appexpress-nocookies';
 import { authUserForConsoleMiddleware } from '../middlewares/auth.js';
 
 export default (express) => {
     logEverything(express);
-    cacheEverything(express);
-    favIconMiddleware(express);
     minifierMiddleware(express);
-    express.middleware(cors.middleware);
-    express.middleware(noCookies.middleware);
+    express.middleware(cors());
+    express.middleware(noCookies());
     express.middleware(authUserForConsoleMiddleware);
+    express.middleware(cache.createApiCache({ timeout: 0 }));
+    express.middleware(favIcon({ iconPath: 'icons/favicon.ico' }));
 };
 
 const logEverything = (express) => {
@@ -21,36 +21,23 @@ const logEverything = (express) => {
 
         // these won't be marked unsupported!
         console.log(`Requested Path: ${url}`);
-        if (apiCache.hasCache(url)) {
+        if (cache.hasCache(url)) {
             console.log(`This url (${url}) is cached!`);
         }
     });
 };
 
-const cacheEverything = (express) => {
-    apiCache.options({ timeout: 0 });
-    express.middleware(apiCache.middleware);
-};
-
-const favIconMiddleware = (express) => {
-    favIcon.options({
-        iconPath: 'icons/favicon.ico',
-    });
-
-    express.middleware(favIcon.middleware);
-};
-
 const minifierMiddleware = (express) => {
-    minifier.options({
-        excludes: ['/robots.txt'],
-        htmlOptions: {
-            minifyJS: true,
-            minifyCSS: true,
-            removeComments: true,
-            collapseWhitespace: true,
-            preserveLineBreaks: false,
-        },
-    });
-
-    express.middleware(minifier.middleware);
+    express.middleware(
+        minifier({
+            excludes: ['/robots.txt'],
+            htmlOptions: {
+                minifyJS: true,
+                minifyCSS: true,
+                removeComments: true,
+                collapseWhitespace: true,
+                preserveLineBreaks: false,
+            },
+        }),
+    );
 };
