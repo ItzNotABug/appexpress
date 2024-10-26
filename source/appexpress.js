@@ -161,7 +161,7 @@ class AppExpress {
 
     /**
      * The base directory inside the docker container where the function is run.\
-     * See [here](https://github.com/open-runtimes/open-runtimes/blob/16bf063b60f1f2a150b6caa9afdd2d1786e7ca35/runtimes/node-18.0/src/server.js#L6) how the exact path is derived.
+     * See [here](https://github.com/open-runtimes/open-runtimes/blob/main/runtimes/node/versions/latest/src/server.js#L5) how the exact path is derived.
      *
      * @type string
      */
