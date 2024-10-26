@@ -1,15 +1,15 @@
 {
   "name": "@itznotabug/appexpress",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "An `express.js` like framework for Appwrite Functions, enabling super-easy navigation!",
   "author": "@itznotabug",
   "type": "module",
   "main": "appexpress.js",
   "license": "Apache-2.0",
   "scripts": {
-    "tests": "cd tests && node test.js",
     "lint": "prettier . --check",
-    "format": "prettier . --write"
+    "format": "prettier . --write",
+    "tests": "cd tests && node test.js"
   },
   "prettier": {
     "tabWidth": 4,
@@ -24,12 +24,12 @@
     "mime-types": "2.1.35"
   },
   "devDependencies": {
-    "pug": "3.0.2",
+    "pug": "3.0.3",
     "ejs": "3.1.10",
     "showdown": "2.1.0",
-    "prettier": "3.2.5",
+    "prettier": "3.3.3",
     "express-hbs": "2.5.0",
-    "@itznotabug/appexpress-nocookies": "^0.0.2"
+    "@itznotabug/appexpress-nocookies": "^0.0.4"
   },
   "keywords": [
     "appwrite",

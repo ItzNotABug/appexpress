@@ -441,3 +441,41 @@ describe('Extended middleware validation', () => {
         assert.strictEqual(body, 'outgoing');
     });
 });
+
+describe('Clean URLs validation', () => {
+    it(`should return index.html content on requesting just index path`, async () => {
+        const indexHtml = `${publicDir}/index.html`;
+        const indexContent = fs.readFileSync(indexHtml, 'utf8');
+
+        const context = createContext({
+            path: '/index',
+        });
+
+        const { body } = await index(context);
+        assert.strictEqual(body, indexContent);
+    });
+
+    it(`should return robots.txt content on requesting just the robots path`, async () => {
+        const robotsFile = `${publicDir}/robots.txt`;
+        const robotsFileContent = fs.readFileSync(robotsFile, 'utf8');
+
+        const context = createContext({
+            path: '/robots',
+        });
+
+        const { body } = await index(context);
+        assert.strictEqual(body, robotsFileContent);
+    });
+
+    it(`should return ads.txt content on requesting just the ads path`, async () => {
+        const robotsFile = `${publicDir}/ads.txt`;
+        const robotsFileContent = fs.readFileSync(robotsFile, 'utf8');
+
+        const context = createContext({
+            path: '/ads',
+        });
+
+        const { body } = await index(context);
+        assert.strictEqual(body, robotsFileContent);
+    });
+});

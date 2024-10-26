@@ -27,6 +27,7 @@ const repositoryOne = new LoremIpsumRepository();
 const repositoryTwo = new LoremIpsumRepository();
 
 express.views('views');
+express.cleanUrls(['html', 'txt']);
 express.static('public', [/^\..*env.*/i]);
 
 express.engine('ejs', ejs); // ejs
@@ -78,7 +79,7 @@ express.inject(repositoryTwo, crypto.randomUUID().replace(/-/g, ''));
 
 // middleware for auth
 express.middleware((request) => {
-    const { userJwtToken } = request.body;
+    const { userJwtToken } = request.bodyJson;
     const isConsole = request.path.includes('/console');
 
     if (isConsole && !userJwtToken) {
@@ -92,7 +93,7 @@ express.middleware((request, response) => {
         request.method === 'get' && request.path.includes('assets');
     if (isFavIconPath) {
         const { mode } = request.query;
-        response.send(
+        response.text(
             `we don't really have a ${mode ? 'dark ' : ''}favicon yet, sorry`,
             404,
         );
@@ -107,7 +108,7 @@ express.middleware({
 });
 
 // hard cookie remover
-express.middleware(noCookies.middleware);
+express.middleware(noCookies());
 
 // override body content
 express.middleware({
@@ -117,18 +118,18 @@ express.middleware({
 });
 
 // directs
-express.get('/', (request, response) => response.send(request.method));
-express.post('/', (request, response) => response.send(request.method));
-express.put('/', (request, response) => response.send(request.method));
-express.patch('/', (request, response) => response.send(request.method));
-express.delete('/', (request, response) => response.send(request.method));
-express.options('/', (request, response) => response.send(request.method));
+express.get('/', (request, response) => response.text(request.method));
+express.post('/', (request, response) => response.text(request.method));
+express.put('/', (request, response) => response.text(request.method));
+express.patch('/', (request, response) => response.text(request.method));
+express.delete('/', (request, response) => response.text(request.method));
+express.options('/', (request, response) => response.text(request.method));
 
 // with router
 router.get('/empty', (request, response) => response.empty());
-router.get('/', (request, response) => response.json(request.body));
+router.get('/', (request, response) => response.json(request.bodyJson));
 router.post('/:user', (request, response) =>
-    response.send(request.params.user),
+    response.text(request.params.user),
 );
 router.post('/:user/:transaction', (request, response) => {
     response.json({
@@ -146,21 +147,21 @@ express.get('/get', (_, __) => {
 });
 
 // all
-express.all('/all', (_, response) => response.send('same on all'));
+express.all('/all', (_, response) => response.text('same on all'));
 
 // auth with a hooked middleware
-express.get('/console', (_, response) => response.send('console'));
+express.get('/console', (_, response) => response.text('console'));
 
 // use injected repo for test
 const injectionRouter = new AppExpress.Router();
 injectionRouter.get('/', (request, response) => {
     const repository = request.retrieve(LoremIpsumRepository, 'one');
-    response.send(repository.get());
+    response.text(repository.get());
 });
 
 injectionRouter.get('/error', (request, response) => {
     const repository = request.retrieve(LoremIpsumRepository);
-    response.send(repository.get());
+    response.text(repository.get());
 });
 
 express.use('/lorem_ipsum', injectionRouter);
@@ -170,10 +171,10 @@ const headersRouter = new AppExpress.Router();
 headersRouter.get('/:uuid', (request, response) => {
     const { uuid } = request.params;
     response.setHeaders({ 'custom-header': uuid });
-    response.send(uuid);
+    response.text(uuid);
 });
 
-headersRouter.get('/clear', (_, response) => response.send('cleared'));
+headersRouter.get('/clear', (_, response) => response.text('cleared'));
 express.use('/headers', headersRouter);
 
 express.get('/engines/:extension', (request, response) => {
@@ -195,8 +196,8 @@ express.get('/engines/article', (request, response) => {
 
 // multiple returns are not allowed.
 express.get('/error/multi-return', (_, response) => {
-    response.send('ok');
-    response.send('ok');
+    response.text('ok');
+    response.text('ok');
 });
 
 express.get('/outgoing', (_, res) => res.empty());
