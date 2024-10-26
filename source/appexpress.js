@@ -156,6 +156,9 @@ class AppExpress {
     /** @type {{br: number, deflate: number, gzip: number}}*/
     #compressionLevel = { br: 11, gzip: 6, deflate: 6 };
 
+    /** @type string[] */
+    #cleanUrlExtensions = [];
+
     /**
      * The base directory inside the docker container where the function is run.\
      * See [here](https://github.com/open-runtimes/open-runtimes/blob/16bf063b60f1f2a150b6caa9afdd2d1786e7ca35/runtimes/node-18.0/src/server.js#L6) how the exact path is derived.
@@ -434,7 +437,15 @@ class AppExpress {
             const filesMapping = this.#processDirectory(directory, exclude);
 
             this.middleware((request, response) => {
-                const requestedFile = filesMapping[request.path];
+                let requestedFile = filesMapping[request.path];
+
+                // If `clean URLs` and no match found, check with `ext`.
+                if (!requestedFile && this.#cleanUrlExtensions.length) {
+                    requestedFile = this.#cleanUrlExtensions
+                        .map((ext) => `${request.path}.${ext}`)
+                        .reduce((acc, path) => acc || filesMapping[path], null);
+                }
+
                 if (requestedFile) {
                     const options = {};
                     const contentType = mime.lookup(requestedFile) || defType;
@@ -456,6 +467,20 @@ class AppExpress {
                 }
             });
         }
+    }
+
+    /**
+     * Configure clean URLs for specific file extensions.\
+     * This feature is **disabled** by default.
+     *
+     * _Note: Only works for files added via {@link AppExpress#static} method._
+     *
+     * @example `index` > `index.html`, `contact` > `contact.html`
+     *
+     * @param {string[]} extensions - List of file extensions (e.g., ['html']) for clean URLs.
+     */
+    cleanUrls(extensions = []) {
+        this.#cleanUrlExtensions = extensions;
     }
 
     /**
