@@ -7,9 +7,9 @@
   "main": "appexpress.js",
   "license": "Apache-2.0",
   "scripts": {
-    "tests": "cd tests && node test.js",
     "lint": "prettier . --check",
-    "format": "prettier . --write"
+    "format": "prettier . --write",
+    "tests": "cd tests && node test.js"
   },
   "prettier": {
     "tabWidth": 4,
