@@ -108,7 +108,7 @@ express.middleware({
 });
 
 // hard cookie remover
-express.middleware(noCookies.middleware);
+express.middleware(noCookies());
 
 // override body content
 express.middleware({
