@@ -1,7 +1,7 @@
 import ejs from 'ejs';
 import pug from 'pug';
-import hbs from 'express-hbs';
 import showdown from 'showdown';
+import hbs from 'express-handlebars';
 
 import fs from 'fs';
 import path from 'path';
@@ -27,6 +27,7 @@ const repositoryOne = new LoremIpsumRepository();
 const repositoryTwo = new LoremIpsumRepository();
 
 express.views('views');
+express.serveIndex(true);
 express.cleanUrls(['html', 'txt']);
 express.static('public', [/^\..*env.*/i]);
 
@@ -36,7 +37,9 @@ express.engine('pug', pug); // pub
 // hbs, html
 express.engine(
     ['hbs', 'html'],
-    hbs.express4({
+    hbs.engine({
+        extname: 'hbs',
+        defaultLayout: false,
         partialsDir: path.join(AppExpress.baseDirectory, 'views/partials'),
     }),
 );
@@ -118,12 +121,16 @@ express.middleware({
 });
 
 // directs
-express.get('/', (request, response) => response.text(request.method));
-express.post('/', (request, response) => response.text(request.method));
-express.put('/', (request, response) => response.text(request.method));
-express.patch('/', (request, response) => response.text(request.method));
-express.delete('/', (request, response) => response.text(request.method));
-express.options('/', (request, response) => response.text(request.method));
+express.get('/methods', (request, response) => response.text(request.method));
+express.post('/methods', (request, response) => response.text(request.method));
+express.put('/methods', (request, response) => response.text(request.method));
+express.patch('/methods', (request, response) => response.text(request.method));
+express.delete('/methods', (request, response) =>
+    response.text(request.method),
+);
+express.options('/methods', (request, response) =>
+    response.text(request.method),
+);
 
 // with router
 router.get('/empty', (request, response) => response.empty());

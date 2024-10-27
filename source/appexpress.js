@@ -159,6 +159,9 @@ class AppExpress {
     /** @type string[] */
     #cleanUrlExtensions = [];
 
+    /** @type boolean */
+    #indexAsDefault = false;
+
     /**
      * The base directory inside the docker container where the function is run.\
      * See [here](https://github.com/open-runtimes/open-runtimes/blob/main/runtimes/node/versions/latest/src/server.js#L5) how the exact path is derived.
@@ -227,15 +230,15 @@ class AppExpress {
         const extensions = Array.isArray(ext) ? ext : [ext];
 
         extensions.forEach((extension) => {
-            // `hbs`, `ejs`, `pug` have this variable,
+            // `ejs` & `pug` have this variable,
             // that is handled by express internally.
             if (engine.hasOwnProperty('__express')) {
                 this.#engine.set(extension, engine.__express);
-            } else if (typeof engine === 'function' && engine.length >= 3) {
+            } else if (typeof engine === 'function') {
                 this.#engine.set(extension, engine);
             } else {
                 throw new Error(
-                    `Invalid engine: It must either have a '__express' property or be a function with at least 3 parameters. Received function length: ${engine.length}`,
+                    `Invalid engine: It must either have a '__express' property or be a function.`,
                 );
             }
         });
@@ -437,6 +440,10 @@ class AppExpress {
             const filesMapping = this.#processDirectory(directory, exclude);
 
             this.middleware((request, response) => {
+                // anything other than `GET` req. method
+                // doesn't make sense on static resources.
+                if (request.method !== 'get') return;
+
                 let requestedFile = filesMapping[request.path];
 
                 // If `clean URLs` and no match found, check with `ext`.
@@ -444,6 +451,13 @@ class AppExpress {
                     requestedFile = this.#cleanUrlExtensions
                         .map((ext) => `${request.path}.${ext}`)
                         .reduce((acc, path) => acc || filesMapping[path], null);
+                }
+
+                // If index fallback is enabled & no file found,
+                // look for an `index.html` in the requested directory.
+                if (!requestedFile && this.#indexAsDefault) {
+                    const indexPath = path.join(request.path, 'index.html');
+                    requestedFile = filesMapping[indexPath];
                 }
 
                 if (requestedFile) {
@@ -475,12 +489,30 @@ class AppExpress {
      *
      * _Note: Only works for files added via {@link AppExpress#static} method._
      *
-     * @example `index` > `index.html`, `contact` > `contact.html`
+     * @example
+     * 1. Navigating to `/faqs` will serve `faqs.html`
+     * 2. Navigating to `/contact` will serve `contact.html`
      *
      * @param {string[]} extensions - List of file extensions (e.g., ['html']) for clean URLs.
      */
     cleanUrls(extensions = []) {
         this.#cleanUrlExtensions = extensions;
+    }
+
+    /**
+     * Enable `index.html` as the default file in directories.\
+     * This feature is **disabled** by default.
+     *
+     * _Note: Only works for files added via {@link AppExpress#static} method._
+     *
+     * @example
+     * 1. Navigating to `/` would serve `index.html`
+     * 2. Navigating to `/contact` would serve `contact/index.html`
+     *
+     * @param {boolean} value - Pass a boolean to enable/disable default indexing.
+     */
+    serveIndex(value) {
+        this.#indexAsDefault = value;
     }
 
     /**

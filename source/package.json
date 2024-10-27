@@ -1,6 +1,6 @@
 {
   "name": "@itznotabug/appexpress",
-  "version": "1.6.3",
+  "version": "1.6.4",
   "description": "An `express.js` like framework for Appwrite Functions, enabling super-easy navigation!",
   "author": "@itznotabug",
   "type": "module",
@@ -28,7 +28,7 @@
     "ejs": "3.1.10",
     "showdown": "2.1.0",
     "prettier": "3.3.3",
-    "express-hbs": "2.5.0",
+    "express-handlebars": "8.0.1",
     "@itznotabug/appexpress-nocookies": "^0.0.4"
   },
   "keywords": [
