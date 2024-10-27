@@ -27,6 +27,7 @@ const repositoryOne = new LoremIpsumRepository();
 const repositoryTwo = new LoremIpsumRepository();
 
 express.views('views');
+express.serveIndex(true);
 express.cleanUrls(['html', 'txt']);
 express.static('public', [/^\..*env.*/i]);
 
@@ -118,12 +119,16 @@ express.middleware({
 });
 
 // directs
-express.get('/', (request, response) => response.text(request.method));
-express.post('/', (request, response) => response.text(request.method));
-express.put('/', (request, response) => response.text(request.method));
-express.patch('/', (request, response) => response.text(request.method));
-express.delete('/', (request, response) => response.text(request.method));
-express.options('/', (request, response) => response.text(request.method));
+express.get('/methods', (request, response) => response.text(request.method));
+express.post('/methods', (request, response) => response.text(request.method));
+express.put('/methods', (request, response) => response.text(request.method));
+express.patch('/methods', (request, response) => response.text(request.method));
+express.delete('/methods', (request, response) =>
+    response.text(request.method),
+);
+express.options('/methods', (request, response) =>
+    response.text(request.method),
+);
 
 // with router
 router.get('/empty', (request, response) => response.empty());

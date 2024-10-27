@@ -12,7 +12,10 @@ const publicDir = './src/function/public';
 describe('Direct requests to all supported methods', () => {
     ['get', 'post', 'put', 'patch', 'delete', 'options'].forEach((method) => {
         it(`should return the ${method} method in response body`, async () => {
-            const context = createContext({ method: method });
+            const context = createContext({
+                method: method,
+                path: '/methods',
+            });
             const { body } = await index(context);
             assert.strictEqual(body, method);
         });
@@ -477,5 +480,31 @@ describe('Clean URLs validation', () => {
 
         const { body } = await index(context);
         assert.strictEqual(body, robotsFileContent);
+    });
+});
+
+describe('Index file fallback validation', () => {
+    it(`should return contact/index.html content on requesting just contact path`, async () => {
+        const indexHtml = `${publicDir}/contact/index.html`;
+        const indexContent = fs.readFileSync(indexHtml, 'utf8');
+
+        const context = createContext({
+            path: '/contact',
+        });
+
+        const { body } = await index(context);
+        assert.strictEqual(body, indexContent);
+    });
+
+    it(`should return contact/enterprise/index.html content on requesting just contact/enterprise path`, async () => {
+        const indexHtml = `${publicDir}/contact/enterprise/index.html`;
+        const indexContent = fs.readFileSync(indexHtml, 'utf8');
+
+        const context = createContext({
+            path: '/contact/enterprise',
+        });
+
+        const { body } = await index(context);
+        assert.strictEqual(body, indexContent);
     });
 });
