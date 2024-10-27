@@ -1,7 +1,7 @@
 import ejs from 'ejs';
 import pug from 'pug';
-import hbs from 'express-hbs';
 import showdown from 'showdown';
+import hbs from 'express-handlebars';
 
 import fs from 'fs';
 import path from 'path';
@@ -37,7 +37,9 @@ express.engine('pug', pug); // pub
 // hbs, html
 express.engine(
     ['hbs', 'html'],
-    hbs.express4({
+    hbs.engine({
+        extname: 'hbs',
+        defaultLayout: false,
         partialsDir: path.join(AppExpress.baseDirectory, 'views/partials'),
     }),
 );

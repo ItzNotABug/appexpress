@@ -230,15 +230,15 @@ class AppExpress {
         const extensions = Array.isArray(ext) ? ext : [ext];
 
         extensions.forEach((extension) => {
-            // `hbs`, `ejs`, `pug` have this variable,
+            // `ejs` & `pug` have this variable,
             // that is handled by express internally.
             if (engine.hasOwnProperty('__express')) {
                 this.#engine.set(extension, engine.__express);
-            } else if (typeof engine === 'function' && engine.length >= 3) {
+            } else if (typeof engine === 'function') {
                 this.#engine.set(extension, engine);
             } else {
                 throw new Error(
-                    `Invalid engine: It must either have a '__express' property or be a function with at least 3 parameters. Received function length: ${engine.length}`,
+                    `Invalid engine: It must either have a '__express' property or be a function.`,
                 );
             }
         });
