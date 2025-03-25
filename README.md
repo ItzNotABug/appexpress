@@ -66,4 +66,4 @@ Your contributions are valued, whether it's reporting issues or suggesting enhan
 
 ### Support the Project
 
-Give the project a ⭐️ to show your support!
+Give the project a ⭐️ to show your support!!!
