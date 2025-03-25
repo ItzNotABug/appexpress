@@ -24,4 +24,4 @@ Finally, create a deployment if uploading manually, below are the config details
 
 ## Live Function Testing
 
-Go to - https://appexpress.appwrite.global/routes to see all routes!
+Go to - https://appexpress.appwrite.global/routes to see all routes!!!
