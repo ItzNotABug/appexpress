@@ -1,0 +1,294 @@
+:root {
+    --vp-c-default-1: var(--vp-c-gray-1);
+    --vp-c-default-2: var(--vp-c-gray-2);
+    --vp-c-default-3: var(--vp-c-gray-3);
+    --vp-c-default-soft: var(--vp-c-gray-soft);
+
+    --vp-c-brand-1: var(--vp-c-red-1);
+    --vp-c-brand-2: var(--vp-c-red-2);
+    --vp-c-brand-3: var(--vp-c-red-3);
+    --vp-c-brand-soft: var(--vp-c-red-soft);
+
+    --vp-c-tip-1: var(--vp-c-brand-1);
+    --vp-c-tip-2: var(--vp-c-brand-2);
+    --vp-c-tip-3: var(--vp-c-brand-3);
+    --vp-c-tip-soft: var(--vp-c-brand-soft);
+
+    --vp-c-warning-1: var(--vp-c-yellow-1);
+    --vp-c-warning-2: var(--vp-c-yellow-2);
+    --vp-c-warning-3: var(--vp-c-yellow-3);
+    --vp-c-warning-soft: var(--vp-c-yellow-soft);
+
+    --vp-c-danger-1: var(--vp-c-red-1);
+    --vp-c-danger-2: var(--vp-c-red-2);
+    --vp-c-danger-3: var(--vp-c-red-3);
+    --vp-c-danger-soft: var(--vp-c-red-soft);
+}
+
+/**
+ * Component: Button
+ * -------------------------------------------------------------------------- */
+
+:root {
+    --vp-button-brand-border: transparent;
+    --vp-button-brand-text: var(--vp-c-white);
+    --vp-button-brand-bg: var(--vp-c-brand-3);
+    --vp-button-brand-hover-border: transparent;
+    --vp-button-brand-hover-text: var(--vp-c-white);
+    --vp-button-brand-hover-bg: var(--vp-c-brand-2);
+    --vp-button-brand-active-border: transparent;
+    --vp-button-brand-active-text: var(--vp-c-white);
+    --vp-button-brand-active-bg: var(--vp-c-brand-1);
+}
+
+/**
+ * Component: Home
+ * -------------------------------------------------------------------------- */
+
+:root {
+    --vp-home-hero-name-color: transparent;
+    --vp-home-hero-name-background: -webkit-linear-gradient(
+        var(--vp-c-red-1),
+        var(--vp-c-red-3)
+    );
+
+    --vp-home-hero-image-background-image: linear-gradient(
+        rgba(244, 63, 94, 0.75),
+        rgba(244, 63, 94, 0.5),
+        rgba(244, 63, 94, 0.25),
+        rgba(244, 63, 94, 0.125)
+    );
+
+    --vp-home-hero-image-filter: blur(80px);
+}
+
+@media (min-width: 640px) {
+    :root {
+        --vp-home-hero-image-filter: blur(56px);
+    }
+}
+
+@media (min-width: 960px) {
+    :root {
+        --vp-home-hero-image-filter: blur(68px);
+    }
+}
+
+/**
+ * Component: Custom Block
+ * -------------------------------------------------------------------------- */
+
+:root {
+    --vp-custom-block-tip-border: transparent;
+    --vp-custom-block-tip-text: var(--vp-c-text-1);
+    --vp-custom-block-tip-bg: var(--vp-c-brand-soft);
+    --vp-custom-block-tip-code-bg: var(--vp-c-brand-soft);
+}
+
+/**
+ * Component: Algolia
+ * -------------------------------------------------------------------------- */
+
+.DocSearch {
+    --docsearch-primary-color: var(--vp-c-brand-1) !important;
+}
+
+/**
+ * Component: Code, Shiki, etc
+ * -------------------------------------------------------------------------- */
+
+pre,
+code {
+    overflow: auto;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+
+    ::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.vp-doc div[class*='language-'],
+.vp-block {
+    margin: 16px -4px;
+    overflow-x: auto;
+    position: relative;
+    border-radius: 8px !important;
+    transition: background-color 0.5s;
+    background-color: var(--vp-code-block-bg);
+}
+
+/**
+ * Component: Post Title, Name, Tagline, etc.
+ * -------------------------------------------------------------------------- */
+
+.name,
+.title,
+.banner,
+.vp-doc h1 {
+    font-family: 'Arial Rounded MT Bold', auto, Inter, serif;
+}
+
+.tagline {
+    padding-top: 1rem !important;
+    font-size: 16px !important;
+    font-family: 'Arial Rounded MT Bold', auto, Inter, serif;
+}
+
+@media (min-width: 640px) {
+    .tagline {
+        font-size: 18px !important;
+        max-width: 40ch !important;
+    }
+}
+
+@media (min-width: 960px) {
+    .container {
+        gap: 16px;
+        flex-direction: row;
+    }
+
+    .VPImage.image-src {
+        max-width: 275px !important;
+        max-height: 275px !important;
+    }
+
+    .VPFeatures {
+        padding: 48px 64px !important;
+    }
+}
+
+/**
+ * Component: Detail & Summary.
+ * -------------------------------------------------------------------------- */
+
+details > summary {
+    list-style: none;
+}
+
+details > summary::marker, /* Latest Chrome, Edge, Firefox */
+details > summary::-webkit-details-marker /* Safari */ {
+    display: none;
+}
+
+summary::before {
+    content: '▶';
+    transition: 0.2s;
+    margin-right: 12px;
+    display: inline-block;
+    animation-duration: 0.2s;
+    animation-fill-mode: forwards;
+}
+
+details[open] summary::before {
+    animation-name: rotateOpenCaret;
+}
+
+details:not([open]) summary::before {
+    animation-name: rotateCloseCaret;
+}
+
+@keyframes rotateOpenCaret {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(90deg);
+    }
+}
+
+@keyframes rotateCloseCaret {
+    from {
+        transform: rotate(90deg);
+    }
+    to {
+        transform: rotate(0deg);
+    }
+}
+
+/**
+ * Component: VPFeature scale animation on hover
+ * -------------------------------------------------------------------------- */
+.VPFeature article .title {
+    margin-top: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .VPFeature {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition:
+            border-color 0.25s,
+            background-color 0.25s,
+            transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+
+        &:hover {
+            transform: scale(1.05);
+            border: 2px solid var(--vp-c-red-soft) !important;
+        }
+    }
+}
+
+/**
+ * Component: Hero image circular shadow for depth
+ * -------------------------------------------------------------------------- */
+.VPImage.image-src {
+    height: 200px;
+    border-radius: 25%;
+    object-fit: scale-down;
+    background: transparent;
+    transition: box-shadow 0.3s ease;
+    border: 2px solid var(--vp-c-red-soft);
+    box-shadow: 0 0 16px rgba(0, 0, 0, 0.45);
+}
+
+@media (min-width: 768px) {
+    /* no theme changing toggle */
+    .VPFlyout.VPNavBarExtra.extra {
+        display: none;
+    }
+}
+
+/**
+ * Component: Title spacing in privacy policy page
+ * -------------------------------------------------------------------------- */
+.vp-doc h2 {
+    margin: unset;
+}
+
+/**
+ * Component: Feature cards section.
+ * -------------------------------------------------------------------------- */
+@media (min-width: 960px) {
+    .item.grid-4 {
+        width: calc(100% / 3) !important;
+    }
+}
+
+.VPNavBarTitle .title {
+    gap: 0.625rem !important;
+}
+
+.VPFeatures .VPImage {
+    border-radius: 0.625rem;
+    border: inset 10px transparent;
+    background: var(--vp-c-default-soft);
+}
+
+.VPNavBarHamburger {
+    display: none !important;
+}
+
+.VPFooter .container .message {
+    gap: 6px;
+    display: inline-flex;
+    font-family: 'Arial Rounded MT Bold', auto, Inter, serif;
+
+    & a {
+        text-decoration: none;
+    }
+}
+
+.action a {
+    font-family: 'Arial Rounded MT Bold', auto, Inter, serif;
+}
