@@ -1,0 +1,9 @@
+.idea
+**/node_modules/
+
+**/*.sh
+**/*.iml
+.vitepress/dist
+.vitepress/cache
+
+**/*.env

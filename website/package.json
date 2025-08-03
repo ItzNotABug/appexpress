@@ -1,0 +1,37 @@
+{
+  "name": "appexpress",
+  "version": "0.0.4",
+  "private": true,
+  "description": "Source of website: https://appexpress.appwrite.network",
+  "author": "@itznotabug",
+  "type": "module",
+  "prettier": {
+    "tabWidth": 4,
+    "singleQuote": true
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "clean": "rm -rf node_modules && pnpm install",
+    "dev": "vitepress dev",
+    "serve": "vitepress preview",
+    "build": "pnpm format && pnpm local",
+    "local": "vitepress build && node ./scripts/minify.js",
+    "lint": "prettier . --check",
+    "format": "prettier . --write"
+  },
+  "devDependencies": {
+    "vue": "^3.5.12",
+    "prettier": "^3.3.3",
+    "purgecss": "^6.0.0",
+    "clean-css": "^5.3.3",
+    "vitepress": "^1.4.1",
+    "html-minifier-terser": "^7.2.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "vue-demi"
+    ]
+  },
+  "packageManager": "pnpm@10.14.0"
+}
