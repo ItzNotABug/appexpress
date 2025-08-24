@@ -1,24 +1,19 @@
-// noinspection JSUnusedGlobalSymbols
+import type { AppwriteContext, AppwriteRequest } from './types/index.js';
 
 /**
  * Represents the incoming http request.
  */
-class AppExpressRequest {
-    /** @type AppwriteFunctionContext */
-    #context;
-
-    /** @type Object */
-    #request;
-
-    /** @type string */
-    #requestPath;
+export default class AppExpressRequest {
+    readonly #requestPath: string;
+    readonly #request: AppwriteRequest;
+    readonly #context: AppwriteContext;
 
     /**
      * Initializes a new instance of the `AppExpressRequest` class.
      *
-     * @param {AppwriteFunctionContext} context - The context provided by the executed `Appwrite Function`.
+     * @param context - The context provided by the executed `Appwrite Function`.
      */
-    constructor(context) {
+    constructor(context: AppwriteContext) {
         this.#context = context;
         this.#request = context.req;
 
@@ -35,38 +30,38 @@ class AppExpressRequest {
     /**
      * Gets the raw body of the request if present.
      *
-     * @returns {string|undefined} The raw request body or undefined if not set.
+     * @returns The raw request body or undefined if not set.
      * @deprecated Use `bodyText` instead.
      */
-    get bodyRaw() {
+    get bodyRaw(): string | undefined {
         return this.bodyText;
     }
 
     /**
      * Gets the raw body of the request as text if present.
      *
-     * @returns {string|undefined} The raw request body or undefined if not set.
+     * @returns The raw request body or undefined if not set.
      */
-    get bodyText() {
+    get bodyText(): string | undefined {
         return this.#request.bodyText;
     }
 
     /**
      * Gets the parsed body of the request if present.
      *
-     * @returns {Object|{}} The request body or empty if not set.
+     * @returns The request body or empty if not set.
      * @deprecated Use `bodyJson` instead.
      */
-    get body() {
+    get body(): Record<string, any> {
         return this.bodyJson;
     }
 
     /**
      * Gets the parsed body of the request if present.
      *
-     * @returns {Object|{}} The request body or empty if not set.
+     * @returns The request body or empty if not set.
      */
-    get bodyJson() {
+    get bodyJson(): Record<string, unknown> {
         if (typeof this.#request.body === 'string' && this.#request.body) {
             try {
                 return JSON.parse(this.#request.body);
@@ -76,114 +71,105 @@ class AppExpressRequest {
                 );
             }
         }
-        return this.#request.body || {};
+        return typeof this.#request.body === 'object' ? this.#request.body : {};
     }
 
     /**
      * Gets the binary content/file from the request if present.
      *
-     * @returns {Buffer|any} The binary content if available.
+     * @returns The binary content if available.
      */
-    get bodyBinary() {
+    get bodyBinary(): Buffer {
         return this.#request.bodyBinary;
     }
 
     /**
      * Gets the headers of the request.
      *
-     * @returns {Object<string, any>} The request headers.
+     * @returns The request headers.
      */
-    get headers() {
+    get headers(): Record<string, string> {
         return this.#request.headers;
     }
 
     /**
      * Get the request scheme (http or https).
      *
-     * @returns {string} The scheme of the request.
+     * @returns The scheme of the request.
      */
-    get scheme() {
+    get scheme(): string {
         return this.#request.scheme;
     }
 
     /**
      * Get the request method (GET, POST, etc.)
      *
-     * @returns {string} The raw request body.
+     * @returns The request method in lowercase.
      */
-    get method() {
+    get method(): string {
         return this.#request.method.toLowerCase();
     }
 
     /**
      * Get the url of the request.
      *
-     * @returns {string} The full URL.
+     * @returns The full URL.
      */
-    get url() {
+    get url(): string {
         return this.#request.url;
     }
 
     /**
      * Get the hostname of the URL.
      *
-     * @returns {string} The URL host.
+     * @returns The URL host.
      */
-    get host() {
+    get host(): string {
         return this.#request.host;
     }
 
     /**
      * Get the port from the URL.
      *
-     * @returns {number} The URL port.
+     * @returns The URL port.
      */
-    get port() {
-        return parseInt(this.#request.port, 10);
+    get port(): number {
+        return this.#request.port;
     }
 
     /**
      * Get the path part of the URL.
      *
-     * @returns {string} The URL path.
+     * @returns The URL path.
      */
-    get path() {
+    get path(): string {
         return this.#requestPath;
     }
 
     /**
      * Get the raw query params string from the URL.
      *
-     * @returns {string} The query string.
+     * @returns The query string.
      */
-    get queryString() {
+    get queryString(): string {
         return this.#request.queryString;
     }
 
     /**
      * Get the params.
      *
-     * @returns {Object<string, any>} The parsed params.
+     * @returns The parsed params.
      */
-    get params() {
+    get params(): Record<string, string> {
         return this.#request.params ?? {};
     }
 
     /**
      * Get the parsed query params from the URL.
      *
-     * @returns {Object|{}} The parsed params or empty if not set.
+     * @returns The parsed params or empty if not set.
      */
-    get query() {
-        if (typeof this.#request.query === 'string' && this.#request.query) {
-            try {
-                return JSON.parse(this.#request.query);
-            } catch (error) {
-                this.#context.error(
-                    `Failed to parse request query as JSON: ${error}`,
-                );
-            }
-        }
+    get query(): Record<string, string> {
         return this.#request.query || {};
     }
 
@@ -192,18 +178,21 @@ class AppExpressRequest {
      *
      * Can be `event`, `http` or `schedule`.
      *
-     * @returns {'event'|'http'|'schedule'} The trigger type.
+     * @returns The trigger type.
      */
-    get triggeredType() {
-        return this.headers['x-appwrite-trigger'];
+    get triggeredType(): 'event' | 'http' | 'schedule' {
+        return this.headers['x-appwrite-trigger'] as
+            | 'event'
+            | 'http'
+            | 'schedule';
     }
 
     /**
      * Event mapping based on the event type.
      *
-     * @returns {{ [key: string]: string }|undefined} The events data in key, value pair.
+     * @returns The events data in key, value pair.
      */
-    get events() {
+    get events(): Record<string, string> | undefined {
         if (this.#fullEventType) {
             return this.#eventTypeParse(this.#fullEventType);
         }
@@ -213,9 +202,9 @@ class AppExpressRequest {
     /**
      * Parse the event type into a more specific form
      *
-     * @returns {string|undefined} Specific event type.
+     * @returns Specific event type.
      */
-    get eventType() {
+    get eventType(): string | undefined {
         if (this.#fullEventType) {
             return this.#getSpecificEventType(this.#fullEventType);
         }
@@ -225,16 +214,16 @@ class AppExpressRequest {
     /**
      * Retrieves an instance based on its type and optional identifier.
      *
-     * @param {Function} type - The constructor of the type to retrieve.
-     * @param {string} identifier='' - An optional identifier for the instance.
-     * @returns {any} The requested instance.
-     * @throws {Error} - If no instance is found or if multiple instances are found without an identifier.
+     * @param type - The constructor of the type to retrieve.
+     * @param identifier - An optional identifier for the instance.
+     * @returns The requested instance.
+     * @throws If no instance is found or if multiple instances are found without an identifier.
      */
-    retrieve(type, identifier = '') {
+    retrieve<T>(type: new (...args: any[]) => T, identifier: string = ''): T {
         const objectName = type.name;
         const key = identifier ? `${objectName}:${identifier}` : objectName;
 
-        if (!this.#request._dependencies.has(key)) {
+        if (!this.#request._dependencies?.has(key)) {
             if (identifier) {
                 throw new Error(
                     `No instance found for '${objectName}' with identifier '${identifier}'.`,
@@ -244,13 +233,23 @@ class AppExpressRequest {
             }
         }
 
-        return this.#request._dependencies.get(key).instance;
+        const dependency = this.#request._dependencies.get(key);
+        if (!dependency) {
+            if (identifier) {
+                throw new Error(
+                    `No instance found for '${objectName}' with identifier '${identifier}'.`,
+                );
+            } else {
+                throw new Error(`No instance found for '${objectName}'.`);
+            }
+        }
+        return dependency.instance as T;
     }
 
     /**
      * Converts the `AppExpressRequest` instance into a string representation formatted as JSON.
      *
-     * @returns {string} A stringified JSON representation of the instance with properties grouped under
+     * @returns A stringified JSON representation of the instance with properties grouped under
      * network details, request data, and operational details.
      *
      * The properties included are:
@@ -258,7 +257,7 @@ class AppExpressRequest {
      * - Request Data: url, path, queryString, query, headers, body, params
      * - Operational Details: triggeredType, events, eventType
      */
-    dump() {
+    dump(): string {
         return JSON.stringify(
             {
                 // Network Details
@@ -290,37 +289,40 @@ class AppExpressRequest {
     /**
      * Get the event name if function triggered by an `event`.
      *
-     * @returns {string|undefined} The event name.
+     * @returns The event name.
      */
-    get #fullEventType() {
+    get #fullEventType(): string | undefined {
         return this.triggeredType === 'event'
             ? this.headers['x-appwrite-event']
             : undefined;
     }
 
     /**
-     * @param {string} eventType - The full event type string
-     * @returns {{ [key: string]: string }} Parsed event map
+     * @param eventType - The full event type string
+     * @returns Parsed event map
      */
-    #eventTypeParse(eventType) {
+    #eventTypeParse(eventType: string): Record<string, string> {
         if (!eventType) return {};
 
-        const eventsMap = {};
+        const eventsMap: Record<string, string> = {};
         const parts = eventType.split('.');
-        for (let i = 0; i < parts.length; i += 2)
-            eventsMap[parts[i]] = parts[i + 1];
+        for (let i = 0; i < parts.length; i += 2) {
+            const key = parts[i];
+            const value = parts[i + 1];
+            if (key && value) {
+                eventsMap[key] = value;
+            }
+        }
 
         return eventsMap;
     }
 
     /**
-     * @param {string} eventType - The full event type string
-     * @returns {string | undefined} Specific event type
+     * @param eventType - The full event type string
+     * @returns Specific event type
      */
-    #getSpecificEventType(eventType) {
+    #getSpecificEventType(eventType: string): string | undefined {
         const segments = eventType.split('.');
         return segments[segments.length - 1];
     }
 }
-
-export default AppExpressRequest;

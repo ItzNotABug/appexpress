@@ -302,13 +302,14 @@ describe('Public static resource handling', () => {
 
     it('should return contents from a js file in a nested directory', async () => {
         const js = `${publicDir}/static/js/window.js`;
-        const jsContent = fs.readFileSync(js); // not served as `text/*`
+        const jsContent = fs.readFileSync(js, 'utf8');
 
         const context = createContext({
             path: '/static/js/window.js',
         });
+
         const { body } = await index(context);
-        assert.deepStrictEqual(body, jsContent);
+        assert.strictEqual(body, jsContent);
     });
 
     it('should return content from an image file as binary', async () => {
@@ -320,6 +321,17 @@ describe('Public static resource handling', () => {
         });
         const { body } = await index(context);
         assert.deepStrictEqual(body, rocketContent);
+    });
+
+    it('should return application/json content as text', async () => {
+        const jsonFile = `${publicDir}/static/binary/package.bin`;
+        const jsonContent = fs.readFileSync(jsonFile);
+
+        const context = createContext({
+            path: '/static/binary/package.bin',
+        });
+        const { body } = await index(context);
+        assert.deepStrictEqual(body, jsonContent);
     });
 });
 

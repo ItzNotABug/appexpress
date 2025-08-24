@@ -57,9 +57,9 @@ Your contributions are valued, whether it's reporting issues or suggesting enhan
             - Documentation tweaks: Clearly state the nature of your updates.
 
     2. **Develop & Test**
-        - Implement your changes and ensure code quality by running `npm run lint`.
-        - Resolve any formatting issues with `npm run format`.
-        - For new features or refactoring, add and run tests using `npm run tests`.
+        - Implement your changes and ensure code quality by running `pnpm lint`.
+        - Resolve any formatting issues with `pnpm format`.
+        - For new features or refactoring, add and run tests using `pnpm build && pnpm tests`.
 
     3. **Open a Pull Request**
         - Ensure you're assigned to the issue before proceeding to PR.

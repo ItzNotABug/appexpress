@@ -1,28 +1,26 @@
-// noinspection JSUnusedGlobalSymbols
-
 import path from 'path';
 import fs from 'fs/promises';
 import mime from 'mime-types';
+import type {
+    AppwriteContext,
+    AppwriteResponse,
+    AppwriteResponseObject,
+} from './types';
 
 /**
  * Represents the response object for returning, exiting the function.
  */
-class AppExpressResponse {
-    /** @type AppwriteFunctionContext */
-    #context;
-
-    /** @type Object */
-    #response;
-
-    /** @type {Object<string, string|number>} */
-    #customHeaders;
+export default class AppExpressResponse {
+    readonly #context: AppwriteContext;
+    readonly #response: AppwriteResponse;
+    #customHeaders: Record<string, string | number | boolean>;
 
     /**
      * Initializes a new instance of the `AppExpressResponse` class.
      *
-     * @param {AppwriteFunctionContext} context - The context provided by the executed `Appwrite Function`.
+     * @param context - The context provided by the executed `Appwrite Function`.
      */
-    constructor(context) {
+    constructor(context: AppwriteContext) {
         this.#context = context;
         this.#response = context.res;
 
@@ -38,10 +36,12 @@ class AppExpressResponse {
      *
      * **Also Note**: A duplicate header will be overridden with the value from the last call.
      *
-     * @param {Object<string, string|number|boolean>} headers - Custom headers to send back to the source.
-     * @throws {Error} - If the header value is not a string or a number.
+     * @param headers - Custom headers to send back to the source.
+     * @throws Error - If the header value is not a string, number, or boolean.
      */
-    setHeaders(headers) {
+    setHeaders(
+        headers: Record<string, string | number | boolean | unknown>,
+    ): void {
         for (const [headerKey, value] of Object.entries(headers)) {
             if (
                 typeof value !== 'string' &&
@@ -60,7 +60,7 @@ class AppExpressResponse {
     /**
      * Clear all the headers added via `setHeaders`.
      */
-    clearHeaders() {
+    clearHeaders(): void {
         this.#customHeaders = {};
     }
 
@@ -68,7 +68,7 @@ class AppExpressResponse {
      * Send an empty response,\
      * typically used when there's no need to send back any data to the source.
      */
-    empty() {
+    empty(): void {
         this.#wrapReturnForSource(
             this.#response.text('', 204, this.#customHeaders),
         );
@@ -77,10 +77,10 @@ class AppExpressResponse {
     /**
      * Send a JSON response back to the source.
      *
-     * @param {Object} data - The JSON data to send.
-     * @param {number} statusCode=200 - The HTTP status code.
+     * @param data - The JSON data to send.
+     * @param statusCode - The HTTP status code.
      */
-    json(data, statusCode = 200) {
+    json(data: unknown, statusCode: number = 200): void {
         this.#wrapReturnForSource(
             this.#response.json(data, statusCode, this.#customHeaders),
         );
@@ -89,9 +89,9 @@ class AppExpressResponse {
     /**
      * Redirect to a specified URL.
      *
-     * @param {string} url - The URL to redirect to.
+     * @param url - The URL to redirect to.
      */
-    redirect(url) {
+    redirect(url: string): void {
         this.#wrapReturnForSource(
             this.#response.redirect(url, 301, this.#customHeaders),
         );
@@ -100,13 +100,17 @@ class AppExpressResponse {
     /**
      * Send a response with a specific content type and status code.
      *
-     * @param {any} content - The response body to send.
-     * @param {number} statusCode=200 - The HTTP status code.
-     * @param {string} contentType='text/plain' - The content type of the response.
+     * @param content - The response body to send.
+     * @param statusCode - The HTTP status code.
+     * @param contentType - The content type of the response.
      */
-    text(content, statusCode = 200, contentType = 'text/plain') {
+    text(
+        content: unknown,
+        statusCode: number = 200,
+        contentType: string = 'text/plain',
+    ): void {
         this.#wrapReturnForSource(
-            this.#response.text(content, statusCode, {
+            this.#response.text(content as string, statusCode, {
                 'content-type': contentType,
                 ...this.#customHeaders,
             }),
@@ -116,13 +120,17 @@ class AppExpressResponse {
     /**
      * Send a response with a specific content type and status code.
      *
-     * @param {any} content - The response body to send.
-     * @param {number} statusCode=200 - The HTTP status code.
-     * @param {string} contentType='text/plain' - The content type of the response.
+     * @param content - The response body to send.
+     * @param statusCode - The HTTP status code.
+     * @param contentType - The content type of the response.
      *
      * @deprecated Use `text` instead.
      */
-    send(content, statusCode = 200, contentType = 'text/plain') {
+    send(
+        content: unknown,
+        statusCode: number = 200,
+        contentType: string = 'text/plain',
+    ): void {
         this.#wrapReturnForSource(
             this.#response.send(content, statusCode, {
                 'content-type': contentType,
@@ -134,27 +142,33 @@ class AppExpressResponse {
     /**
      * Send content from a file as a response back to the source.
      *
-     * @param {Buffer|string} contentOrPath - The file content or the path.
-     * @param {number} statusCode=200 - The HTTP status code to send.
-     * @param {string|null} contentType='text/plain' - The content type of the response. If passing file path, content type is auto-decided.
+     * @param contentOrPath - The file content or the path.
+     * @param statusCode - The HTTP status code to send.
+     * @param contentType - The content type of the response. If passing file path, content type is auto-decided.
      */
-    binary(contentOrPath, statusCode = 200, contentType = 'text/plain') {
+    binary(
+        contentOrPath: Buffer | string,
+        statusCode: number = 200,
+        contentType: string = 'text/plain',
+    ): void {
         try {
-            let promise;
-
             if (typeof contentOrPath === 'string') {
                 // file path > read its content.
-                contentType = mime.lookup(contentOrPath) || contentType;
-                promise = this.#readFile(contentOrPath);
+                const detectedContentType = mime.lookup(contentOrPath);
+                this.#customHeaders['content-type'] =
+                    detectedContentType || contentType;
+
+                this.#wrapForPromise(this.#readFile(contentOrPath), statusCode);
             } else {
                 // direct read the content
-                promise = new Promise((resolve) => resolve(contentOrPath));
+                this.#customHeaders['content-type'] = contentType;
+                this.#wrapForPromise(
+                    new Promise((resolve) => resolve(contentOrPath)),
+                    statusCode,
+                );
             }
-
-            this.#customHeaders['content-type'] = contentType;
-            this.#wrapForPromise(promise, statusCode);
         } catch (error) {
-            this.#context.error(`Failed to read HTML file: ${error}`);
+            this.#context.error(`Failed to read binary file: ${error}`);
             this.text('Internal Server Error', 500, 'text/plain');
         }
     }
@@ -162,18 +176,22 @@ class AppExpressResponse {
     /**
      * Render content from views using the pre-set engine.
      *
-     * @param {string} filePath - The name of the file to render.\
+     * @param filePath - The name of the file to render.\
      * **Note: If you have set up multiple engines, use the file extension as well.**
-     * @param {Object} options - The options for the rendering engine.
-     * @param {number} statusCode=200 - The HTTP status code.
+     * @param options - The options for the rendering engine.
+     * @param statusCode - The HTTP status code.
      */
-    render(filePath, options = {}, statusCode = 200) {
+    render(
+        filePath: string,
+        options: Record<string, unknown> = {},
+        statusCode: number = 200,
+    ): void {
         const engines = this.#response._engine ?? new Map();
 
         if (!engines.size) throw new Error('No view engine found.');
 
-        let usablePath;
-        let fileExtension = /(?:\.([^.]+))?$/.exec(filePath)[1];
+        let usablePath: string;
+        let fileExtension = /(?:\.([^.]+))?$/.exec(filePath)?.[1];
 
         if (!fileExtension) {
             if (engines.size === 1) {
@@ -196,15 +214,21 @@ class AppExpressResponse {
             // Note: If 'options' already includes a 'settings' object, it will be preserved.
             options.settings = options.settings || {};
 
-            const promise = new Promise((resolve, reject) => {
-                engineSettings(usablePath, options, function (error, content) {
-                    if (error) reject(error);
-                    else resolve(content);
-                });
+            const promise = new Promise<string>((resolve, reject) => {
+                engineSettings(
+                    usablePath,
+                    options,
+                    function (error: any, content: string) {
+                        if (error) reject(error);
+                        else resolve(content);
+                    },
+                );
             });
 
             this.#customHeaders['content-type'] = 'text/html';
-            this.#wrapForPromise(promise, statusCode);
+            this.#wrapReturnForSource(
+                this.#response.binary(promise, statusCode, this.#customHeaders),
+            );
         } catch (error) {
             this.#context.error(`Failed to render content: ${error}`);
             this.text('Internal Server Error', 500, 'text/plain');
@@ -214,27 +238,27 @@ class AppExpressResponse {
     /**
      * Reads a file asynchronously and returns its contents as a Buffer.
      *
-     * @param {string} path - The path to the file relative to a base path.
-     * @returns {Promise<string|null>} - A promise that resolves with the file contents as a string or null if there was an error.
+     * @param path - The path to the file relative to a base path.
+     * @returns A promise that resolves with the file contents as a string or null if there was an error.
      */
-    async #readFile(path) {
+    async #readFile(path: string): Promise<string> {
         const usablePath = this.#usablePath(path);
 
         try {
             return await fs.readFile(usablePath, 'utf8');
         } catch (error) {
             this.#context.error(`Failed to read file: ${error}`);
-            return null;
+            throw error;
         }
     }
 
     /**
      * Builds and returns a directly usable path to the file.
      *
-     * @param {string} path - The base path of the file.
-     * @returns {string} The full usable path.
+     * @param path - The base path of the file.
+     * @returns The full usable path.
      */
-    #usablePath(path) {
+    #usablePath(path: string): string {
         const filePath = this.#buildFilePath(path);
         return this.#basePath(filePath);
     }
@@ -242,10 +266,10 @@ class AppExpressResponse {
     /**
      * Adds the views directory (if exists) as the correct prefix.
      *
-     * @param {string} fileName - The name of the file.
-     * @returns {string} The correct path for the given file.
+     * @param fileName - The name of the file.
+     * @returns The correct path for the given file.
      */
-    #buildFilePath(fileName) {
+    #buildFilePath(fileName: string): string {
         return this.#response._views
             ? `${this.#response._views}/${fileName}`
             : `${fileName}`;
@@ -254,10 +278,10 @@ class AppExpressResponse {
     /**
      * Returns the base path where the function is running on the server.
      *
-     * @param append='' - Any path to append to the base path
-     * @returns {string} The base path of the function directory.
+     * @param append - Any path to append to the base path
+     * @returns The base path of the function directory.
      */
-    #basePath(append = '') {
+    #basePath(append: string = ''): string {
         return path.join(
             process.cwd(),
             `${this.#response._baseDirectory}`,
@@ -268,10 +292,10 @@ class AppExpressResponse {
     /**
      * Helper function that wraps and returns back a Promise to render view.
      *
-     * @param {Promise<any>} promise - Promise that returns a html string on completion.
-     * @param {number} statusCode=200 - The HTTP status code.
+     * @param promise - Promise that returns a html string on completion.
+     * @param statusCode - The HTTP status code.
      */
-    #wrapForPromise(promise, statusCode) {
+    #wrapForPromise(promise: Promise<any>, statusCode: number = 200) {
         let promiseDataType = this.#response.binary(promise, statusCode, {
             ...this.#customHeaders,
         });
@@ -282,20 +306,20 @@ class AppExpressResponse {
     /**
      * Wrap the return value for source.
      *
-     * @param {any} data - The data to wrap for safety.
+     * @param data - The data to wrap for safety.
      */
-    #wrapReturnForSource(data) {
+    #wrapReturnForSource(data: unknown): void {
         this.#checkIfAlreadyPrepared();
 
-        this.#response.dynamic = data;
+        this.#response.dynamic = data as AppwriteResponseObject;
     }
 
     /**
      * Prevents multiple responses from being sent for a single request.
      *
-     * @throws {Error} - Throws an error if there is an attempt to send a second response as it can lead to unexpected behavior.
+     * @throws Throws an error if there is an attempt to send a second response as it can lead to unexpected behavior.
      */
-    #checkIfAlreadyPrepared() {
+    #checkIfAlreadyPrepared(): void {
         if (this.#response.dynamic) {
             const error = new Error(
                 'A response has already been prepared. Cannot initiate another response. ' +
@@ -306,5 +330,3 @@ class AppExpressResponse {
         }
     }
 }
-
-export default AppExpressResponse;

@@ -3,9 +3,13 @@
 
 *.sh
 **/package-lock.json
+**/pnpm-lock.yaml
 
 # readme in the source folder, only used for npm.
 source/README.md
 
 # functions
 **/code.tar.gz
+
+# build files
+**/dist

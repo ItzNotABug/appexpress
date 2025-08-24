@@ -6,7 +6,7 @@ import hbs from 'express-handlebars';
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import AppExpress from '../../../appexpress.js';
+import AppExpress from '../../../dist/appexpress.js';
 import noCookies from '@itznotabug/appexpress-nocookies';
 
 /**

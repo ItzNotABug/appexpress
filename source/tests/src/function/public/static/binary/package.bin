@@ -1,0 +1,11 @@
+{
+  "name": "@itznotabug/appexpress",
+  "version": "1.6.4",
+  "description": "An `express.js` like framework for Appwrite Functions, enabling super-easy navigation!",
+  "author": "@itznotabug",
+  "homepage": "https://github.com/itznotabug/appexpress",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itznotabug/appexpress.git"
+  }
+}
