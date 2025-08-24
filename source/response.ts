@@ -37,7 +37,7 @@ export default class AppExpressResponse {
      * **Also Note**: A duplicate header will be overridden with the value from the last call.
      *
      * @param headers - Custom headers to send back to the source.
-     * @throws If the header value is not a string, number, or boolean.
+     * @throws Error - If the header value is not a string, number, or boolean.
      */
     setHeaders(
         headers: Record<string, string | number | boolean | unknown>,

@@ -8,8 +8,8 @@ import type {
  * Represents the incoming http request.
  */
 export default class AppExpressRequest {
-    readonly #request: AppwriteRequest;
     readonly #requestPath: string;
+    readonly #request: AppwriteRequest;
     readonly #context: AppwriteContext;
 
     /**
