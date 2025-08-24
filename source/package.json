@@ -1,14 +1,30 @@
 {
   "name": "@itznotabug/appexpress",
-  "version": "1.6.4",
+  "version": "1.8.0",
   "description": "An `express.js` like framework for Appwrite Functions, enabling super-easy navigation!",
   "author": "@itznotabug",
   "type": "module",
-  "main": "appexpress.js",
+  "main": "dist/appexpress.js",
+  "types": "dist/appexpress.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/appexpress.d.ts",
+      "import": "./dist/appexpress.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "license": "Apache-2.0",
   "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
     "lint": "prettier . --check",
     "format": "prettier . --write",
+    "type-check": "tsc --noEmit",
     "tests": "cd tests && node test.js"
   },
   "prettier": {
@@ -21,19 +37,26 @@
     "url": "https://github.com/itznotabug/appexpress.git"
   },
   "dependencies": {
-    "mime-types": "2.1.35"
+    "mime-types": "3.0.1"
   },
   "devDependencies": {
-    "pug": "3.0.3",
+    "@itznotabug/appexpress-nocookies": "^0.0.4",
+    "@types/mime-types": "^3.0.1",
+    "@types/node": "^24.1.0",
     "ejs": "3.1.10",
+    "express-handlebars": "8.0.3",
+    "prettier": "3.6.2",
+    "pug": "3.0.3",
     "showdown": "2.1.0",
-    "prettier": "3.3.3",
-    "express-handlebars": "8.0.1",
-    "@itznotabug/appexpress-nocookies": "^0.0.4"
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2"
   },
   "keywords": [
     "appwrite",
     "appwrite-functions",
     "appwrite-functions-navigation"
-  ]
+  ],
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
 }

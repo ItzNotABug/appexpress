@@ -4,31 +4,37 @@ import fs from 'fs';
 import path from 'path';
 import zlib from 'zlib';
 import mime from 'mime-types';
-import AppExpressRequest from './types/request.js';
-import AppExpressResponse from './types/response.js';
-import { isCompressible, requestMethods } from './types/misc.js';
+import AppExpressRequest from './request.js';
+import AppExpressResponse from './response.js';
+import { isCompressible, requestMethods } from './utils/index.js';
+import type {
+    AppExpressRequestHandler,
+    AppExpressRequestMethods,
+    AppExpressResponseHandler,
+    AppExpressViewEngineHandler,
+    AppwriteContext,
+    CompressionHandler,
+    InjectionRegistry,
+} from './types';
 
 /**
  * An `express.js` like framework for Appwrite Functions, enabling super-easy navigation!
  */
-class AppExpress {
+export default class AppExpress {
     /**
      * Represents a Router for handling HTTP requests.
      */
     static Router = class Router {
-        /** @type boolean */
-        #empty = true;
-
-        /** @type RequestMethods */
-        #internalRoutes = requestMethods();
+        #empty: boolean = true;
+        #internalRoutes: AppExpressRequestMethods = requestMethods();
 
         /**
          * Registers a `GET` route.
          *
-         * @param {string} path - The URL path.
-         * @param {RequestHandler} handler - The handler to execute for the path.
+         * @param path - The URL path.
+         * @param handler - The handler to execute for the path.
          */
-        get(path, handler) {
+        get(path: string, handler: AppExpressRequestHandler): void {
             this.#internalRoutes.get.set(path, handler);
             this.#toggleEmpty();
         }
@@ -36,10 +42,10 @@ class AppExpress {
         /**
          * Registers a `POST` route.
          *
-         * @param {string} path - The URL path.
-         * @param {RequestHandler} handler - The handler to execute for the path.
+         * @param path - The URL path.
+         * @param handler - The handler to execute for the path.
          */
-        post(path, handler) {
+        post(path: string, handler: AppExpressRequestHandler): void {
             this.#internalRoutes.post.set(path, handler);
             this.#toggleEmpty();
         }
@@ -47,10 +53,10 @@ class AppExpress {
         /**
          * Registers a `PUT` route.
          *
-         * @param {string} path - The URL path.
-         * @param {RequestHandler} handler - The handler to execute for the path.
+         * @param path - The URL path.
+         * @param handler - The handler to execute for the path.
          */
-        put(path, handler) {
+        put(path: string, handler: AppExpressRequestHandler): void {
             this.#internalRoutes.put.set(path, handler);
             this.#toggleEmpty();
         }
@@ -58,10 +64,10 @@ class AppExpress {
         /**
          * Registers a `PATCH` route.
          *
-         * @param {string} path - The URL path.
-         * @param {RequestHandler} handler - The handler to execute for the path.
+         * @param path - The URL path.
+         * @param handler - The handler to execute for the path.
          */
-        patch(path, handler) {
+        patch(path: string, handler: AppExpressRequestHandler): void {
             this.#internalRoutes.patch.set(path, handler);
             this.#toggleEmpty();
         }
@@ -69,32 +75,32 @@ class AppExpress {
         /**
          * Registers a `DELETE` route.
          *
-         * @param {string} path - The URL path.
-         * @param {RequestHandler} handler - The handler to execute for the path.
+         * @param path - The URL path.
+         * @param handler - The handler to execute for the path.
          */
-        delete(path, handler) {
+        delete(path: string, handler: AppExpressRequestHandler): void {
             this.#internalRoutes.delete.set(path, handler);
             this.#toggleEmpty();
         }
 
         /**
-         * Registers a `OPTIONS` route.
+         * Registers an `OPTIONS` route.
          *
-         * @param {string} path - The URL path.
-         * @param {RequestHandler} handler - The handler to execute for the path.
+         * @param path - The URL path.
+         * @param handler - The handler to execute for the path.
          */
-        options(path, handler) {
+        options(path: string, handler: AppExpressRequestHandler): void {
             this.#internalRoutes.options.set(path, handler);
             this.#toggleEmpty();
         }
 
         /**
-         * Register a handler for `ALL` routes.
+         * Registers a route for `ALL` methods.
          *
-         * @param {string} path - The URL path.
-         * @param {RequestHandler} handler - The handler to execute for the path.
+         * @param path - The URL path.
+         * @param handler - The handler to execute for the path.
          */
-        all(path, handler) {
+        all(path: string, handler: AppExpressRequestHandler): void {
             this.#internalRoutes.all.set(path, handler);
             this.#toggleEmpty();
         }
@@ -103,72 +109,59 @@ class AppExpress {
          * This method is for accessing the built routes.\
          * **Note**: This API is not for public consumption.
          *
-         * @returns {{empty: boolean, internalRoutes: RequestMethods}} The routes and their respective handlers.
+         * @returns The routes and their respective handlers.
          */
-        read(accessor) {
+        read(
+            accessor: object,
+        ):
+            | { empty: boolean; internalRoutes: AppExpressRequestMethods }
+            | undefined {
             if (accessor instanceof AppExpress) {
                 return {
                     empty: this.#empty,
                     internalRoutes: this.#internalRoutes,
                 };
             }
+            return undefined;
         }
 
         /**
-         * Sets the flag to not empty if at-least one route handler is added.\
-         * The logic is to access the `emptiness` at fast path instead of checking all the methods in the RequestMethods.
+         * Toggle the empty state of the router.
          */
-        #toggleEmpty() {
-            if (this.#empty) this.#empty = false;
+        #toggleEmpty(): void {
+            this.#empty = false;
         }
     };
 
-    /** @type AppwriteFunctionContext */
-    #context;
-
-    /** @type AppExpressRequest */
-    #request;
-
-    /** @type AppExpressResponse */
-    #response;
-
-    /** @type {{incoming: RequestHandler[], outgoing: ResponseHandler[]}} */
-    #middlewares = { incoming: [], outgoing: [] };
-
-    /** @type InjectionRegistry */
-    #dependencies = new Map();
-
-    /** @type string */
-    #views = '';
-
-    /** @type RequestMethods */
-    #routes = requestMethods();
-
-    /** @type ViewEngineHandler */
-    #engine = new Map();
-
-    /** @type boolean*/
-    #showPoweredBy = true;
-
-    /** @type {boolean|CompressionHandler} */
-    #compression = true;
-
-    /** @type {{br: number, deflate: number, gzip: number}}*/
-    #compressionLevel = { br: 11, gzip: 6, deflate: 6 };
-
-    /** @type string[] */
-    #cleanUrlExtensions = [];
-
-    /** @type boolean */
-    #indexAsDefault = false;
+    #context?: AppwriteContext;
+    #request?: AppExpressRequest;
+    #response?: AppExpressResponse;
+    #middlewares: {
+        incoming: AppExpressRequestHandler[];
+        outgoing: AppExpressResponseHandler[];
+    } = {
+        incoming: [],
+        outgoing: [],
+    };
+    #dependencies: InjectionRegistry = new Map();
+    #views: string = '';
+    #routes: AppExpressRequestMethods = requestMethods();
+    #engine: AppExpressViewEngineHandler = new Map();
+    #showPoweredBy: boolean = true;
+    #compression: boolean | CompressionHandler = true;
+    #compressionLevel: { br: number; deflate: number; gzip: number } = {
+        br: 11,
+        gzip: 6,
+        deflate: 6,
+    };
+    #cleanUrlExtensions: string[] = [];
+    #indexAsDefault: boolean = false;
 
     /**
      * The base directory inside the docker container where the function is run.\
      * See [here](https://github.com/open-runtimes/open-runtimes/blob/main/runtimes/node/versions/latest/src/server.js#L5) how the exact path is derived.
-     *
-     * @type string
      */
-    static get baseDirectory() {
+    static get baseDirectory(): string {
         return './src/function';
     }
 
@@ -185,7 +178,7 @@ class AppExpress {
      * Out of the box supported engines are - `ejs`, `express-hbs`, `hbs` & `pug`.
      *
      * You can create a custom engine too! Define one like:
-     * ```javascript
+     * ```typescript
      * import fs from 'fs';
      *
      * // set views directory
@@ -198,36 +191,22 @@ class AppExpress {
      *     const rendered = content.toString()
      *       .replace('#title#', `<title>${options.title}</title>`);
      *       // or use a regex to filter content pattern.
+     *
      *     return callback(null, rendered)
      *   })
      * })
      * ```
      *
-     * Template file (`index.ntl`):
-     * ```
-     * <h1>#title#</h1>
-     * ```
-     *
-     * Usage:
-     *```javascript
-     * appExpress.get('/', (req, res) => {
-     *   res.render('index', { title: 'AppExpress' })
-     * })
-     * ```
-     *
-     * @param {string|string[]} ext - The file extension[s] for the engine.
-     * @param {any} engine - The view engine that will be used for rendering content.
+     * @param ext - The file extension[s] for the engine.
+     * @param engine - The view engine that will be used for rendering content.
      */
-    engine(ext, engine) {
-        // perform a quick validation!
-        if (!Array.isArray(ext) && typeof ext !== 'string') {
-            throw new Error(
-                'The extension must be a string or an array of strings.',
-            );
-        }
-
+    engine(ext: string | string[], engine: any): AppExpress {
         // construct an array for looping around...
         const extensions = Array.isArray(ext) ? ext : [ext];
+
+        if (!extensions.every((e) => e.trim().length > 0)) {
+            throw new Error('The extension(s) must be non-empty string(s).');
+        }
 
         extensions.forEach((extension) => {
             // `ejs` & `pug` have this variable,
@@ -242,6 +221,8 @@ class AppExpress {
                 );
             }
         });
+
+        return this;
     }
 
     /**
@@ -249,34 +230,16 @@ class AppExpress {
      *
      * **Note**: `request.params` are not available to middlewares due to no `pattern` awareness.
      *
-     * @param {RequestHandler|{incoming: RequestHandler|undefined, outgoing: ResponseHandler|undefined}} middleware - The middleware/request handler to add to the chain.
-     * @example
-     * ```javascript
-     * appExpress.middleware((request, response, log, error) => {
-     *   // do something with `request` object.
-     *
-     *   log('this is a debug log');
-     *   error('this is an error log');
-     *
-     *   // throw an Error here to exit the middleware chain.
-     * });
-     * ```
-     *
-     * @example
-     * ```javascript
-     * appExpress.middleware({
-     *   incoming: (request, response, log, error) => {
-     *     // check request and response,
-     *     // or even return response if you like.
-     *   },
-     *   outgoing: (request, interceptor, log, error) => {
-     *     // you can modify the response here.
-     *     // interceptor.body, interceptor.statusCode, interceptor.headers.
-     *   }
-     * });
-     * ```
+     * @param middleware - The middleware/request handler to add to the chain.
      */
-    middleware(middleware) {
+    middleware(
+        middleware:
+            | AppExpressRequestHandler
+            | {
+                  incoming?: AppExpressRequestHandler;
+                  outgoing?: AppExpressResponseHandler;
+              },
+    ): AppExpress {
         // preserve the previous behaviour.
         if (typeof middleware === 'function') {
             this.#middlewares.incoming.push(middleware);
@@ -285,111 +248,131 @@ class AppExpress {
             if (incoming) this.#middlewares.incoming.push(incoming);
             if (outgoing) this.#middlewares.outgoing.push(outgoing);
         }
+
+        return this;
     }
 
     /**
      * Registers a `Router` for a given path.
      *
-     * @param {string} path - The base URL path.
-     * @param {AppExpress.Router} router - The router that handles the extending paths.
-     * @throws {Error} - If the router does not have any handlers.
-     * @see {AppExpress.Router}
+     * @param path - The base URL path.
+     * @param router - The router that handles the extending paths.
+     * @throws If the router does not have any handlers.
      */
-    use(path, router) {
+    use(
+        path: string,
+        router: InstanceType<typeof AppExpress.Router>,
+    ): AppExpress {
         const config = router.read(this);
 
-        if (config.empty) {
+        if (!config || config.empty) {
             throw new Error(`No routes defined for path '${path}'.`);
         }
 
         for (const method in config.internalRoutes) {
-            config.internalRoutes[method].forEach((handler, route) => {
+            const methodRoutes = config.internalRoutes[
+                method as keyof AppExpressRequestMethods
+            ] as Map<string, AppExpressRequestHandler>;
+            methodRoutes.forEach((handler, route) => {
                 const fullPath = this.#normalizePath(path, route);
-                this.#routes[method].set(fullPath, handler);
+                (
+                    this.#routes[
+                        method as keyof AppExpressRequestMethods
+                    ] as Map<string, AppExpressRequestHandler>
+                ).set(fullPath, handler);
             });
         }
+
+        return this;
     }
 
     /**
      * Registers a `GET` route.
      *
-     * @param {string} path - The URL path.
-     * @param {RequestHandler} handler - The handler to execute for the path.
+     * @param path - The URL path.
+     * @param handler - The handler to execute for the path.
      */
-    get(path, handler) {
+    get(path: string, handler: AppExpressRequestHandler): AppExpress {
         this.#routes.get.set(path, handler);
+        return this;
     }
 
     /**
      * Registers a `POST` route.
      *
-     * @param {string} path - The URL path.
-     * @param {RequestHandler} handler - The handler to execute for the path.
+     * @param path - The URL path.
+     * @param handler - The handler to execute for the path.
      */
-    post(path, handler) {
+    post(path: string, handler: AppExpressRequestHandler): AppExpress {
         this.#routes.post.set(path, handler);
+        return this;
     }
 
     /**
      * Registers a `PUT` route.
      *
-     * @param {string} path - The URL path.
-     * @param {RequestHandler} handler - The handler to execute for the path.
+     * @param path - The URL path.
+     * @param handler - The handler to execute for the path.
      */
-    put(path, handler) {
+    put(path: string, handler: AppExpressRequestHandler): AppExpress {
         this.#routes.put.set(path, handler);
+        return this;
     }
 
     /**
      * Registers a `PATCH` route.
      *
-     * @param {string} path - The URL path.
-     * @param {RequestHandler} handler - The handler to execute for the path.
+     * @param path - The URL path.
+     * @param handler - The handler to execute for the path.
      */
-    patch(path, handler) {
+    patch(path: string, handler: AppExpressRequestHandler): AppExpress {
         this.#routes.patch.set(path, handler);
+        return this;
     }
 
     /**
      * Registers a `DELETE` route.
      *
-     * @param {string} path - The URL path.
-     * @param {RequestHandler} handler - The handler to execute for the path.
+     * @param path - The URL path.
+     * @param handler - The handler to execute for the path.
      */
-    delete(path, handler) {
+    delete(path: string, handler: AppExpressRequestHandler): AppExpress {
         this.#routes.delete.set(path, handler);
+        return this;
     }
 
     /**
-     * Registers a `OPTIONS` route.
+     * Registers an `OPTIONS` route.
      *
-     * @param {string} path - The URL path.
-     * @param {RequestHandler} handler - The handler to execute for the path.
+     * @param path - The URL path.
+     * @param handler - The handler to execute for the path.
      */
-    options(path, handler) {
+    options(path: string, handler: AppExpressRequestHandler): AppExpress {
         this.#routes.options.set(path, handler);
+        return this;
     }
 
     /**
-     * Register a handler for `ALL` routes.
+     * Registers a route for `ALL` methods.
      *
-     * @param {string} path - The URL path.
-     * @param {RequestHandler} handler - The handler to execute for the path.
+     * @param path - The URL path.
+     * @param handler - The handler to execute for the path.
      */
-    all(path, handler) {
+    all(path: string, handler: AppExpressRequestHandler): AppExpress {
         this.#routes.all.set(path, handler);
+        return this;
     }
 
     /**
      * Cache an instance to access it later via `AppExpressRequest#retrieve()`.\
      * Useful when you have to pass a class instance around the application.
      *
-     * @param {any} object - The instance to inject.
-     * @param {string} identifier='' - An optional identifier for the instance.
-     * @throws {Error} - If an instance already exists.
+     * @param object - The instance to inject.
+     * @param identifier - An optional identifier for the instance.
+     * @throws If an instance already exists.
      */
-    inject(object, identifier = '') {
-        const objectType = object.constructor;
+    inject<T extends object>(object: T, identifier: string = ''): this {
+        const objectType = object.constructor as Function;
         const objectName = objectType.name;
         const key = identifier ? `${objectName}:${identifier}` : objectName;
 
@@ -406,35 +389,31 @@ class AppExpress {
         }
 
         this.#dependencies.set(key, { type: objectType, instance: object });
+
+        return this;
     }
 
     /**
      * Specify a path where your views are stored for rendering.
      *
-     * @param {string} directory='' - The directory path containing the views.
+     * @param directory - The directory path containing the views.
      */
-    views(directory = '') {
+    views(directory: string = ''): AppExpress {
         this.#views = directory;
+        return this;
     }
 
     /**
      * Specify a path where your static files are located for public access.\
      * Requests made to these files are handled via a `middleware` and are directly served.
      *
-     * To use multiple static assets directories, you can call this function multiple times :
-     * ```javascript
-     * appExpress.static('public');
-     *
-     *  // exclude some files via name or RegExp.
-     * appExpress.static('files', ['.env', /config/g]);
-     * ```
-     *
-     * **Note**: The default encoding is `text/plain` if no or unknown extension is found for a file.
-     *
-     * @param {string} directory='' - The directory path containing the public files.
-     * @param {(string|RegExp)[]} [exclude=[]] - The directory path containing the public files.
+     * @param directory - The directory path containing the public files.
+     * @param exclude - Name or regex pattern to exclude files.
      */
-    static(directory = '', exclude = []) {
+    static(
+        directory: string = '',
+        exclude: (string | RegExp)[] = [],
+    ): AppExpress {
         if (directory) {
             const defType = 'text/plain';
             const filesMapping = this.#processDirectory(directory, exclude);
@@ -448,9 +427,14 @@ class AppExpress {
 
                 // If `clean URLs` and no match found, check with `ext`.
                 if (!requestedFile && this.#cleanUrlExtensions.length) {
-                    requestedFile = this.#cleanUrlExtensions
+                    const foundFile = this.#cleanUrlExtensions
                         .map((ext) => `${request.path}.${ext}`)
-                        .reduce((acc, path) => acc || filesMapping[path], null);
+                        .reduce(
+                            (acc: string | null, path: string) =>
+                                acc || filesMapping[path] || null,
+                            null,
+                        );
+                    if (foundFile) requestedFile = foundFile;
                 }
 
                 // If index fallback is enabled & no file found,
@@ -461,7 +445,7 @@ class AppExpress {
                 }
 
                 if (requestedFile) {
-                    const options = {};
+                    const options: { encoding?: BufferEncoding } = {};
                     const contentType = mime.lookup(requestedFile) || defType;
 
                     if (
@@ -474,45 +458,41 @@ class AppExpress {
                     const fileContent = fs.readFileSync(requestedFile, options);
 
                     if (options.encoding === 'utf8') {
-                        response.text(fileContent, 200, contentType);
+                        response.text(fileContent as string, 200, contentType);
                     } else {
-                        response.binary(fileContent, 200, contentType);
+                        response.binary(
+                            fileContent as Buffer,
+                            200,
+                            contentType,
+                        );
                     }
                 }
             });
         }
+
+        return this;
     }
 
     /**
      * Configure clean URLs for specific file extensions.\
      * This feature is **disabled** by default.
      *
-     * _Note: Only works for files added via {@link AppExpress#static} method._
-     *
-     * @example
-     * 1. Navigating to `/faqs` will serve `faqs.html`
-     * 2. Navigating to `/contact` will serve `contact.html`
-     *
-     * @param {string[]} extensions - List of file extensions (e.g., ['html']) for clean URLs.
+     * @param extensions - List of file extensions (e.g., ['html']) for clean URLs.
      */
-    cleanUrls(extensions = []) {
+    cleanUrls(extensions: string[] = []): AppExpress {
         this.#cleanUrlExtensions = extensions;
+        return this;
     }
 
     /**
      * Enable `index.html` as the default file in directories.\
      * This feature is **disabled** by default.
      *
-     * _Note: Only works for files added via {@link AppExpress#static} method._
-     *
-     * @example
-     * 1. Navigating to `/` would serve `index.html`
-     * 2. Navigating to `/contact` would serve `contact/index.html`
-     *
-     * @param {boolean} value - Pass a boolean to enable/disable default indexing.
+     * @param value - Pass a boolean to enable/disable default indexing.
      */
-    serveIndex(value) {
+    serveIndex(value: boolean): AppExpress {
         this.#indexAsDefault = value;
+        return this;
     }
 
     /**
@@ -521,10 +501,11 @@ class AppExpress {
      *
      * Enabled by default.
      *
-     * @param {boolean} value - No header is added if you pass `false` or set your own header value.
+     * @param value - No header is added if you pass `false` or set your own header value.
      */
-    poweredByHeader(value) {
+    poweredByHeader(value: boolean): AppExpress {
         this.#showPoweredBy = value;
+        return this;
     }
 
     /**
@@ -533,22 +514,17 @@ class AppExpress {
      * **Note**: Supported encodings are `br`, `gzip`, and `deflate`.
      * If the client supports multiple encodings, `br` is prioritized.
      *
-     * Example for custom compression -
-     * ```javascript
-     * import zstd from '@mongodb-js/zstd';
-     *
-     * express.compression({
-     *   encodings: new Set(['zstd']),
-     *   compress: async (buffer) => {
-     *       return await zstd.compress(buffer, 9);
-     *   }
-     * });
-     * ```
-     *
-     * @param {boolean|CompressionHandler} value - Determines whether to enable compression, which is enabled by default, or to provide a custom compression handler.
-     * @param {{br: number, deflate: number, gzip: number}} [options={ br: 11, gzip: 6, deflate: 6 }] - Specifies the compression levels for the supported encodings.
+     * @param value - Determines whether to enable compression, which is enabled by default, or to provide a custom compression handler.
+     * @param options - Specifies the compression levels for the supported encodings.
      */
-    compression(value = true, options = { br: 11, gzip: 6, deflate: 6 }) {
+    compression(
+        value: boolean | CompressionHandler = true,
+        options: { br: number; deflate: number; gzip: number } = {
+            br: 11,
+            gzip: 6,
+            deflate: 6,
+        },
+    ): AppExpress {
         if (Object.keys(options).length !== 3) {
             throw new Error(
                 'Please provide compression level options for all the supported encodings.',
@@ -562,12 +538,14 @@ class AppExpress {
         this.#validateCompression(options.deflate, 1, 9);
 
         this.#compressionLevel = options;
+
+        return this;
     }
 
     /**
      * Validate min and max compression levels for an encoding.
      */
-    #validateCompression(encoding, min, max) {
+    #validateCompression(encoding: number, min: number, max: number): void {
         if (encoding < min || encoding > max) {
             throw new Error('Invalid compression level provided.');
         }
@@ -576,16 +554,19 @@ class AppExpress {
     /**
      * Reads a given directory and builds file mappings.
      *
-     * @param {string} directory - The directory to read.
-     * @param {(string|RegExp)[]} exclude - Name or regex pattern to exclude files,
-     * @returns {{}} An object containing file names as keys and their relative path as values for reads.
+     * @param directory - The directory to read.
+     * @param exclude - Name or regex pattern to exclude files.
+     * @returns An object containing file names as keys and their relative path as values for reads.
      */
-    #processDirectory(directory, exclude) {
-        let filesMapping = {};
+    #processDirectory(
+        directory: string,
+        exclude: (string | RegExp)[],
+    ): Record<string, string> {
+        let filesMapping: Record<string, string> = {};
         let directoryStack = [path.join(AppExpress.baseDirectory, directory)];
 
         while (directoryStack.length) {
-            const currentPath = directoryStack.pop();
+            const currentPath = directoryStack.pop()!;
             const contents = fs.readdirSync(currentPath, {
                 withFileTypes: true,
             });
@@ -622,37 +603,50 @@ class AppExpress {
      *
      * ```text
      * ----------------------------------------------------------------------------
-     * Unsupported logs detected. Use context.log() or context.error() for logging.
+     * Unsupported logs detected.
+     * Use context.log() or context.error() for logging.
      * ----------------------------------------------------------------------------
      * ```
      */
-    #overrideConsoleLogging() {
-        const log = this.#context.log;
+    #overrideConsoleLogging(): void {
+        if (!this.#context) return;
+
+        // Override console methods
+        console.log = this.#context.log;
+        console.info = this.#context.log;
+        console.warn = this.#context.log;
+        console.debug = this.#context.log;
         console.error = this.#context.error;
-        console.log = console.warn = console.info = console.debug = log;
     }
 
     /**
      * Handle incoming requests.
      */
-    async #handleRequest() {
+    async #handleRequest(): Promise<any> {
         // build the request and response.
-        this.#request = new AppExpressRequest(this.#context);
-        this.#response = new AppExpressResponse(this.#context);
+        this.#request = new AppExpressRequest(this.#context!);
+        this.#response = new AppExpressResponse(this.#context!);
 
         // setup response handler.
-        this.#context.req._dependencies = this.#dependencies;
-        this.#context.res._baseDirectory = AppExpress.baseDirectory;
+        this.#context!.req._dependencies = this.#dependencies;
+        this.#context!.res._baseDirectory = AppExpress.baseDirectory;
 
-        if (this.#views) this.#context.res._views = this.#views;
-        if (this.#engine.size) this.#context.res._engine = this.#engine;
+        if (this.#views) this.#context!.res._views = this.#views;
+        if (this.#engine.size) this.#context!.res._engine = this.#engine;
 
         // find the route...
         const method = this.#request.method;
-        let routeHandler = this.#routes[method].get(this.#request.path);
+        let routeHandler: AppExpressRequestHandler | undefined = (
+            this.#routes[method as keyof AppExpressRequestMethods] as Map<
+                string,
+                AppExpressRequestHandler
+            >
+        ).get(this.#request.path);
 
         if (!routeHandler) {
-            for (const [path, handler] of this.#routes[method]) {
+            for (const [path, handler] of this.#routes[
+                method as keyof AppExpressRequestMethods
+            ] as Map<string, AppExpressRequestHandler>) {
                 // Skip wildcard during matching.
                 if (path === '*') continue;
 
@@ -689,7 +683,12 @@ class AppExpress {
         }
 
         if (!routeHandler) {
-            routeHandler = this.#routes[method].get('*');
+            routeHandler = (
+                this.#routes[method as keyof AppExpressRequestMethods] as Map<
+                    string,
+                    AppExpressRequestHandler
+                >
+            ).get('*');
             // can this ever be a use-case? IDK.
             if (!routeHandler) routeHandler = this.#routes.all.get('*');
         }
@@ -701,8 +700,8 @@ class AppExpress {
             await middleware(
                 this.#request,
                 this.#response,
-                this.#context.log,
-                this.#context.error,
+                this.#context!.log,
+                this.#context!.error,
             );
 
             // a middleware returned something.
@@ -719,8 +718,8 @@ class AppExpress {
             await routeHandler(
                 this.#request,
                 this.#response,
-                this.#context.log,
-                this.#context.error,
+                this.#context!.log,
+                this.#context!.error,
             );
 
             return await this.#processHandlerResult();
@@ -735,10 +734,13 @@ class AppExpress {
     /**
      * Extract dynamic params for the request.
      *
-     * @param {string} requestPath - The request path. Example : `/users/a4d3b4a80`
-     * @param {string} routePathPattern - The pattern of the path intended for extraction. Example : `/users/:id`
+     * @param requestPath - The request path. Example : `/users/a4d3b4a80`
+     * @param routePathPattern - The pattern of the path intended for extraction. Example : `/users/:id`
      */
-    #extractParamsFromRoute(requestPath, routePathPattern) {
+    #extractParamsFromRoute(
+        requestPath: string,
+        routePathPattern: string,
+    ): void {
         const pathParts = requestPath.split('/').filter((part) => part.length);
         const patternParts = routePathPattern
             .split('/')
@@ -747,32 +749,24 @@ class AppExpress {
         if (patternParts.length !== pathParts.length) return;
 
         // default empty list.
-        this.#context.req.params = {};
+        this.#context!.req.params = {};
 
         for (let index = 0; index < patternParts.length; index++) {
-            if (patternParts[index].startsWith(':')) {
-                const paramName = patternParts[index].substring(1);
-                this.#context.req.params[paramName] = pathParts[index];
+            if (patternParts[index]?.startsWith(':')) {
+                const paramName = patternParts[index]!.substring(1);
+                this.#context!.req.params![paramName] = pathParts[index]!;
             }
         }
     }
 
     /**
-     * Clears the dependency if any was injected.
-     */
-    #clearDependencies() {
-        this.#dependencies.length = 0;
-        this.#context.req._dependencies.length = 0;
-    }
-
-    /**
      * Combines and normalizes the basePath and route into a clean URL path.
      *
-     * @param {string} basePath - The base part of the URL path.
-     * @param {string} route - The route segment to be appended to the base path.
-     * @returns {string} The normalized URL path.
+     * @param basePath - The base part of the URL path.
+     * @param route - The route segment to be appended to the base path.
+     * @returns The normalized URL path.
      */
-    #normalizePath(basePath, route) {
+    #normalizePath(basePath: string, route: string): string {
         let fullPath = `${basePath}/${route}`.replace(/\/+/g, '/');
 
         if (fullPath.endsWith('/') && fullPath.length > 1) {
@@ -784,26 +778,23 @@ class AppExpress {
     /**
      * Check if the appwrite context has the dynamic return.
      *
-     * @returns {boolean}
+     * @returns true if context has return value
      */
-    #contextHasReturn() {
+    #contextHasReturn(): boolean {
         return (
-            this.#context.res.dynamic !== null &&
-            this.#context.res.dynamic !== undefined
+            this.#context!.res.dynamic !== null &&
+            this.#context!.res.dynamic !== undefined
         );
     }
 
     /**
      * Handles the result from either the middleware or the router handler.
      *
-     * @returns {*} The result from the `routeHandlerResult`.
+     * @returns The result from the `routeHandlerResult`.
      */
-    async #processHandlerResult() {
-        // clear dependencies.
-        this.#clearDependencies();
-
+    async #processHandlerResult(): Promise<any> {
         if (this.#contextHasReturn()) {
-            const dynamic = this.#context.res.dynamic;
+            const dynamic = this.#context!.res.dynamic!;
 
             try {
                 /**
@@ -814,10 +805,10 @@ class AppExpress {
 
                 for (const interceptor of this.#middlewares.outgoing) {
                     await interceptor(
-                        this.#request,
+                        this.#request!,
                         dynamic,
-                        this.#context.log,
-                        this.#context.error,
+                        this.#context!.log,
+                        this.#context!.error,
                     );
                 }
 
@@ -830,7 +821,7 @@ class AppExpress {
             }
         } else {
             return this.#sendErrorResult(
-                `Invalid return from route ${this.#request.path}. Use 'response.empty()' if no response is expected.`,
+                `Invalid return from route ${this.#request!.path}. Use 'response.empty()' if no response is expected.`,
             );
         }
     }
@@ -838,7 +829,9 @@ class AppExpress {
     /**
      * Adds the "X-Powered-By" header.
      */
-    #addPoweredByHeader(dynamic) {
+    #addPoweredByHeader(dynamic: {
+        headers?: Record<string, string | number | boolean>;
+    }): void {
         if (!dynamic.headers) return;
 
         const headerKey = 'X-Powered-By';
@@ -850,16 +843,16 @@ class AppExpress {
     /**
      * Return an error result to source.
      *
-     * @param {string} error - The error message.
-     * @returns {*} The result to be sent back to source.
+     * @param error - The error message.
+     * @returns The result to be sent back to source.
      */
-    #sendErrorResult(error) {
+    #sendErrorResult(error: string): any {
         // for console executions.
-        this.#context.error(error);
+        this.#context!.error(error);
 
         // return as per original implementation,
         // open-runtimes > node* > src > server.js
-        return this.#context.res.send(error, 500, {
+        return this.#context!.res.send(error, 500, {
             'content-type': 'text/plain',
         });
     }
@@ -867,18 +860,23 @@ class AppExpress {
     /**
      * Apply appropriate compression based on the accepted encoding.
      *
-     * @param {Object} dynamic - The dynamic object containing body, statusCode and headers.
+     * @param dynamic - The dynamic object containing body, statusCode and headers.
      */
-    async #compress(dynamic) {
+    async #compress(dynamic: {
+        body: unknown;
+        headers: Record<string, string | number | boolean>;
+    }): Promise<void> {
         if (!this.#compression) return;
 
         const { headers, body } = dynamic;
-        const reqHeaders = this.#context.req.headers;
+        const reqHeaders = this.#context!.req.headers;
         const acceptEncoding = reqHeaders['accept-encoding'];
         if (!acceptEncoding) return;
 
-        let buffer;
-        const encodings = acceptEncoding.split(',').map((enc) => enc.trim());
+        let buffer: Buffer;
+        const encodings = acceptEncoding
+            .split(',')
+            .map((enc: string) => enc.trim());
 
         if (Buffer.isBuffer(body)) buffer = body;
         else if (typeof body === 'string') buffer = Buffer.from(body);
@@ -896,12 +894,19 @@ class AppExpress {
     /**
      * Use a compression provided by the user.
      */
-    async #userCompression(encodings, headers, buffer, dynamic) {
+    async #userCompression(
+        encodings: string[],
+        headers: Record<string, string | number | boolean>,
+        buffer: Buffer,
+        dynamic: {
+            body: unknown;
+            headers: Record<string, string | number | boolean>;
+        },
+    ): Promise<boolean> {
         if (typeof this.#compression !== 'boolean') {
-            /** @type CompressionHandler */
-            const compressor = this.#compression;
+            const compressor = this.#compression as CompressionHandler;
 
-            const contentType = headers['content-type'];
+            const contentType = headers['content-type'] as string;
             const compressorEncodings = compressor.encodings;
             const supportedEncoding = encodings.find((encoding) =>
                 compressorEncodings.has(encoding),
@@ -913,8 +918,8 @@ class AppExpress {
 
             const compressedContent = await compressor.compress(
                 buffer,
-                this.#context.log,
-                this.#context.error,
+                this.#context!.log,
+                this.#context!.error,
             );
 
             headers['content-encoding'] =
@@ -928,12 +933,20 @@ class AppExpress {
     /**
      * Use the default standard compressions.
      */
-    #defaultCompression(encodings, headers, buffer, dynamic) {
+    #defaultCompression(
+        encodings: string[],
+        headers: Record<string, string | number | boolean>,
+        buffer: Buffer,
+        dynamic: {
+            body: unknown;
+            headers: Record<string, string | number | boolean>;
+        },
+    ): void {
         const contentType = headers['content-type'];
 
-        if (!isCompressible(contentType)) return;
+        if (!isCompressible(contentType as string)) return;
 
-        let compressedContent;
+        let compressedContent: Buffer;
 
         // perf. wise : br > gzip > deflate.
         if (encodings.includes('br')) {
@@ -962,7 +975,14 @@ class AppExpress {
     /**
      * Update the dynamic object with provided data.
      */
-    #updateDynamic(dynamic, headers, body) {
+    #updateDynamic(
+        dynamic: {
+            body: unknown;
+            headers: Record<string, string | number | boolean>;
+        },
+        headers: Record<string, string | number | boolean>,
+        body: Buffer,
+    ): void {
         dynamic.body = body;
         dynamic.headers = headers;
         dynamic.headers['content-length'] = body.length;
@@ -971,9 +991,9 @@ class AppExpress {
     /**
      * Attach the AppExpress instance.
      *
-     * @param {AppwriteFunctionContext} context - The context provided by the executed `Appwrite Function`.
+     * @param context - The context provided by the executed `Appwrite Function`.
      */
-    async attach(context) {
+    async attach(context: AppwriteContext): Promise<any> {
         // appwrite context.
         this.#context = context;
 
@@ -984,5 +1004,3 @@ class AppExpress {
         return await this.#handleRequest();
     }
 }
-
-export default AppExpress;
