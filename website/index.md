@@ -22,7 +22,7 @@ hero:
 
 status:
   type: 'danger'
-  text: "What's New in <b>1.6.4</b>: Clean URLs & Index Defaults"
+  text: "What's New in <b>1.8.0</b>: TypeScript support is here!"
 
 features:
   - icon:
@@ -71,8 +71,8 @@ features:
       src: /svgs/typescript.svg
       height: 42px
       width: 42px
-    title: TypeScript (Coming Soon)
-    details: TypeScript support is planned to enhance the developer experience.
+    title: TypeScript
+    details: TypeScript support on library to enhance the developer experience.
 
   - icon:
       src: /svgs/github.svg
