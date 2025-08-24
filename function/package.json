@@ -20,7 +20,7 @@
     "fresh": "0.5.2",
     "showdown": "2.1.0",
     "express-hbs": "2.5.0",
-    "@itznotabug/appexpress": "^1.6.2",
+    "@itznotabug/appexpress": "^1.8.0",
     "@itznotabug/appexpress-jsx": "^0.0.4",
     "@itznotabug/appexpress-cors": "^0.0.2",
     "@itznotabug/appexpress-favicon": "^0.0.3",
