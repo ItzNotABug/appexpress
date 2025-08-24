@@ -21,7 +21,7 @@
     "build": "tsc",
     "build:watch": "tsc --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build",
+    "prepublishOnly": "pnpm clean && pnpm build",
     "lint": "prettier . --check",
     "format": "prettier . --write",
     "type-check": "tsc --noEmit",
