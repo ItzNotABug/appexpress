@@ -1,8 +1,4 @@
-import type {
-    AppwriteContext,
-    AppwriteRequest,
-    InjectionRegistry,
-} from './types/index.js';
+import type { AppwriteContext, AppwriteRequest } from './types/index.js';
 
 /**
  * Represents the incoming http request.

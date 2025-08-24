@@ -21,10 +21,13 @@ jobs:
         with:
           node-version: 20
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Install Dependencies
-        run: npm install
+        run: pnpm install
         working-directory: ./function
 
       - name: Run Prettier
-        run: npm run lint
+        run: pnpm lint
         working-directory: ./function
